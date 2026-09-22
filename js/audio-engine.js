@@ -48,22 +48,22 @@ class DeltronAudioEngine {
       },
       chunkySub3030: {
         name: "Chunky 3030 Sub-Bass Heavy",
-        bpm: 86,
-        bassRoot: 31, // G1 (deep ground-shaking sub root)
-        scale: [0, 3, 5, 6, 7, 10], // Heavy minor/blues/pentatonic
+        bpm: 84,
+        bassRoot: 33, // A1 (deep 55Hz foundation)
+        scale: [0, 3, 5, 7, 10], // Heavy blues pentatonic
         drumPattern: {
-          kick:  [1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0], // Chunky double-kick MPC groove
-          snare: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1], // Heavy crisp snare with ghost accent
-          hihat: [1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0], // Syncopated boom-bap swing
+          kick:  [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0], // Chunky MPC syncopation
+          snare: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1], // Heavy backbeat + ghost snare
+          hihat: [1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0], // Gritty swing hat groove
           openHat:[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0],
-          perc:  [0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1]  // Chunky rimshot & metallic percussion
+          perc:  [0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1]
         },
-        bassPattern: [1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0], // Heavy driving sub-bassline
+        bassPattern: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0], // Heavy sustained 808 sub notes
         chordFreqs: [
-          [98.00, 116.54, 146.83, 174.61],  // G minor 7
-          [87.31, 110.00, 130.81, 164.81],  // F minor 7
-          [82.41, 103.83, 123.47, 155.56],  // Eb minor 7
-          [92.50, 116.54, 138.59, 174.61]   // Gb7 / D7alt
+          [110.00, 130.81, 164.81, 196.00],  // Am7 (low, dusty, warm)
+          [98.00, 123.47, 146.83, 174.61],   // Gm7
+          [87.31, 110.00, 130.81, 155.56],   // Fm7
+          [103.83, 130.81, 155.56, 185.00]   // Ab7alt
         ]
       },
       papyrusVirus: {
@@ -332,7 +332,46 @@ class DeltronAudioEngine {
     const preset = this.beatStyles[this.currentStyle];
     const drums = preset.drumPattern;
 
-    // Trigger Drums
+    // --- DEDICATED CHUNKY SUB-BASS BOOM-BAP SYNTHESIZER ---
+    if (this.currentStyle === "chunkySub3030") {
+      // 1. Heavy MPC Kick
+      if (drums.kick[stepIndex]) {
+        this.playChunkyKick(time);
+      }
+      // 2. Chunky Vinyl Snare & Ghost Clap
+      if (drums.snare[stepIndex]) {
+        this.playChunkySnare(time);
+      }
+      // 3. MPC Swing Shaker & Hi-Hats
+      if (drums.hihat[stepIndex]) {
+        const isAccent = (stepIndex % 4 === 2 || stepIndex % 4 === 0);
+        this.playChunkyHiHat(time, isAccent);
+      }
+      if (drums.openHat[stepIndex]) {
+        this.playChunkyOpenHat(time);
+      }
+      if (drums.perc[stepIndex]) {
+        this.playChunkyPerc(time);
+      }
+
+      // 4. Massive Sustained 808 Sub-Bassline with Pitch Glide
+      if (preset.bassPattern[stepIndex]) {
+        const bar = Math.floor(this.step / 4);
+        const noteOffset = preset.scale[(stepIndex + bar) % preset.scale.length];
+        const freq = 440 * Math.pow(2, (preset.bassRoot + noteOffset - 69) / 12);
+        this.playChunky808Bass(time, freq, 0.72);
+      }
+
+      // 5. Dusty Vintage Vinyl Sample Chop Stabs (on steps 0, 6, 12)
+      if (stepIndex === 0 || stepIndex === 6 || stepIndex === 12) {
+        const chordIndex = Math.floor(this.step / 4) % preset.chordFreqs.length;
+        const freqs = preset.chordFreqs[chordIndex];
+        this.playChunkyVinylChop(time, freqs, 0.55);
+      }
+      return;
+    }
+
+    // --- STANDARD DELTRON 3030 / ORBITAL SYNTHESIZER ---
     if (drums.kick[stepIndex]) {
       this.playKick(time);
     }
@@ -373,41 +412,266 @@ class DeltronAudioEngine {
     }
   }
 
-  // --- SOUND SYNTHESIS METHODS ---
+  // --- DEDICATED CHUNKY BOOM-BAP SYNTHESIZERS ---
 
-  playKick(time) {
+  playChunkyKick(time) {
     if (!this.ctx || !this.masterGain) return;
     const t = Math.max(this.ctx.currentTime, time);
-    const isChunky = this.currentStyle === "chunkySub3030";
 
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
 
     osc.type = "sine";
-    osc.frequency.setValueAtTime(isChunky ? 165 : 140, t);
-    osc.frequency.exponentialRampToValueAtTime(isChunky ? 30 : 38, t + (isChunky ? 0.16 : 0.12));
+    osc.frequency.setValueAtTime(175, t);
+    osc.frequency.exponentialRampToValueAtTime(28, t + 0.16);
 
-    gain.gain.setValueAtTime(isChunky ? 1.25 : 1.1, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + (isChunky ? 0.45 : 0.35));
+    gain.gain.setValueAtTime(1.35, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.48);
 
     osc.connect(gain);
     gain.connect(this.masterGain);
 
     osc.start(t);
-    osc.stop(t + (isChunky ? 0.45 : 0.35));
+    osc.stop(t + 0.48);
 
-    // Punch transient click
+    // Beater punch slap
     const click = this.ctx.createOscillator();
     const clickGain = this.ctx.createGain();
     click.type = "triangle";
-    click.frequency.setValueAtTime(isChunky ? 340 : 300, t);
-    click.frequency.exponentialRampToValueAtTime(70, t + 0.025);
-    clickGain.gain.setValueAtTime(isChunky ? 0.65 : 0.5, t);
+    click.frequency.setValueAtTime(380, t);
+    click.frequency.exponentialRampToValueAtTime(50, t + 0.025);
+    clickGain.gain.setValueAtTime(0.7, t);
     clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.025);
     click.connect(clickGain);
     clickGain.connect(this.masterGain);
     click.start(t);
     click.stop(t + 0.025);
+  }
+
+  playChunkySnare(time) {
+    if (!this.ctx || !this.masterGain) return;
+    const t = Math.max(this.ctx.currentTime, time);
+
+    // Fat low wood body
+    const osc = this.ctx.createOscillator();
+    const oscGain = this.ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(165, t);
+    osc.frequency.exponentialRampToValueAtTime(62, t + 0.12);
+    oscGain.gain.setValueAtTime(0.85, t);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+    osc.connect(oscGain);
+    oscGain.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 0.14);
+
+    // Vinyl crackle snap burst
+    const node = this.ctx.createBufferSource();
+    const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.22, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < buffer.length; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    node.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(1200, t);
+    filter.Q.setValueAtTime(2.2, t);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.95, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+
+    node.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    node.start(t);
+    node.stop(t + 0.22);
+  }
+
+  playChunkyHiHat(time, isAccent = false) {
+    if (!this.ctx || !this.masterGain) return;
+    const t = Math.max(this.ctx.currentTime, time);
+    const node = this.ctx.createBufferSource();
+    const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.045, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < buffer.length; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    node.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(4500, t);
+    filter.Q.setValueAtTime(3.5, t);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(isAccent ? 0.42 : 0.25, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+
+    node.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    node.start(t);
+    node.stop(t + 0.04);
+  }
+
+  playChunkyOpenHat(time) {
+    if (!this.ctx || !this.masterGain) return;
+    const t = Math.max(this.ctx.currentTime, time);
+    const node = this.ctx.createBufferSource();
+    const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.28, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < buffer.length; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    node.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(5200, t);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.38, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.26);
+
+    node.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    node.start(t);
+    node.stop(t + 0.26);
+  }
+
+  playChunkyPerc(time) {
+    if (!this.ctx || !this.masterGain) return;
+    const t = Math.max(this.ctx.currentTime, time);
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(820, t);
+    osc.frequency.exponentialRampToValueAtTime(140, t + 0.07);
+
+    gain.gain.setValueAtTime(0.35, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 0.07);
+  }
+
+  playChunky808Bass(time, freq, duration = 0.72) {
+    if (!this.ctx || !this.masterGain) return;
+    const t = Math.max(this.ctx.currentTime, time);
+
+    // Deep sub sine with pitch drop glide
+    const subOsc = this.ctx.createOscillator();
+    subOsc.type = "sine";
+    subOsc.frequency.setValueAtTime(freq * 1.5, t);
+    subOsc.frequency.exponentialRampToValueAtTime(freq, t + 0.035);
+
+    const subFilter = this.ctx.createBiquadFilter();
+    subFilter.type = "lowpass";
+    subFilter.frequency.setValueAtTime(180, t);
+
+    const subGain = this.ctx.createGain();
+    subGain.gain.setValueAtTime(1.15, t);
+    subGain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+
+    // Low saturation body
+    const bodyOsc = this.ctx.createOscillator();
+    bodyOsc.type = "triangle";
+    bodyOsc.frequency.setValueAtTime(freq, t);
+
+    const bodyFilter = this.ctx.createBiquadFilter();
+    bodyFilter.type = "lowpass";
+    bodyFilter.frequency.setValueAtTime(120, t);
+
+    const bodyGain = this.ctx.createGain();
+    bodyGain.gain.setValueAtTime(0.65, t);
+    bodyGain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+
+    subOsc.connect(subFilter);
+    subFilter.connect(subGain);
+    subGain.connect(this.masterGain);
+
+    bodyOsc.connect(bodyFilter);
+    bodyFilter.connect(bodyGain);
+    bodyGain.connect(this.masterGain);
+
+    subOsc.start(t);
+    bodyOsc.start(t);
+    subOsc.stop(t + duration);
+    bodyOsc.stop(t + duration);
+  }
+
+  playChunkyVinylChop(time, freqs, duration = 0.55) {
+    if (!this.ctx || !this.masterGain) return;
+    const t = Math.max(this.ctx.currentTime, time);
+
+    freqs.forEach((f, idx) => {
+      const osc = this.ctx.createOscillator();
+      const filter = this.ctx.createBiquadFilter();
+      const gain = this.ctx.createGain();
+
+      osc.type = idx % 2 === 0 ? "sawtooth" : "triangle";
+      osc.frequency.setValueAtTime(f, t);
+      osc.detune.setValueAtTime((idx - 1.5) * 8, t);
+
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(450, t);
+      filter.frequency.exponentialRampToValueAtTime(220, t + duration);
+
+      gain.gain.setValueAtTime(0.18, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+
+      osc.start(t);
+      osc.stop(t + duration);
+    });
+  }
+
+  // --- STANDARD SYNTHESIS METHODS ---
+
+  playKick(time) {
+    if (!this.ctx || !this.masterGain) return;
+    const t = Math.max(this.ctx.currentTime, time);
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(140, t);
+    osc.frequency.exponentialRampToValueAtTime(38, t + 0.12);
+
+    gain.gain.setValueAtTime(1.1, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(t);
+    osc.stop(t + 0.35);
+
+    // Punch transient click
+    const click = this.ctx.createOscillator();
+    const clickGain = this.ctx.createGain();
+    click.type = "triangle";
+    click.frequency.setValueAtTime(300, t);
+    click.frequency.exponentialRampToValueAtTime(80, t + 0.02);
+    clickGain.gain.setValueAtTime(0.5, t);
+    clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.02);
+    click.connect(clickGain);
+    clickGain.connect(this.masterGain);
+    click.start(t);
+    click.stop(t + 0.02);
   }
 
   playSnare(time) {
