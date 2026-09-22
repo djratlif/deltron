@@ -1,6 +1,6 @@
 {
   "name": "deltron-zero-3030",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "DELTRON ZERO // 3030 24/7 AI RAP BOT",
   "main": "server.js",
   "type": "commonjs",

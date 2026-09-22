@@ -576,10 +576,10 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`====================================================`);
-  console.log(`🤖 DELTRON ZERO // 3030 MAINFRAME SERVER`);
-  console.log(`📡 Listening on: http://0.0.0.0:${PORT}`);
-  console.log(`🔑 Server Key Configured: ${SERVER_API_KEY ? 'YES (Active)' : 'NO (Awaiting env var)'}`);
-  console.log(`🔒 Access Code: '${ACCESS_CODE}'`);
-  console.log(`🌐 Target Domain: deltron.drewratliff.com`);
+  console.log(`[DELTRON ZERO // 3030 MAINFRAME SERVER]`);
+  console.log(`[NETWORK] Listening on: http://0.0.0.0:${PORT}`);
+  console.log(`[SECURITY] Server Key Configured: ${SERVER_API_KEY ? 'YES (Active)' : 'NO (Awaiting env var)'}`);
+  console.log(`[ACCESS] Access Code: '${ACCESS_CODE}'`);
+  console.log(`[DOMAIN] Target Domain: deltron.drewratliff.com`);
   console.log(`====================================================`);
 });

@@ -141,19 +141,19 @@
     // Ping Diagnostics Button
     if (pingDiagBtn) {
       pingDiagBtn.addEventListener("click", async () => {
-        deltronLog("info", "📡 Pinging /api/diagnostics endpoint on Cloud Run...");
+        deltronLog("info", "[PING] Contacting /api/diagnostics endpoint on Cloud Run...");
         try {
           const t0 = Date.now();
           const res = await fetch("/api/diagnostics");
           const dt = Date.now() - t0;
           if (res.ok) {
             const data = await res.json();
-            deltronLog("success", `✅ Server Online (${dt}ms) | Revision: ${data.revision} | AI Key Configured: ${data.serverKeyConfigured ? 'YES' : 'NO'} (${data.keyMask}) | Priority Model: ${data.primaryModel} | Uptime: ${data.uptimeSeconds}s | Mem: ${data.memoryUsageMb}MB`);
+            deltronLog("success", `[OK] Server Online (${dt}ms) | Revision: ${data.revision} | AI Key Configured: ${data.serverKeyConfigured ? 'YES' : 'NO'} (${data.keyMask}) | Priority Model: ${data.primaryModel} | Uptime: ${data.uptimeSeconds}s | Mem: ${data.memoryUsageMb}MB`);
           } else {
-            deltronLog("error", `❌ Server ping error: HTTP ${res.status}`);
+            deltronLog("error", `[ERR] Server ping error: HTTP ${res.status}`);
           }
         } catch (e) {
-          deltronLog("error", `❌ Ping failed: ${e.message}`);
+          deltronLog("error", `[ERR] Ping failed: ${e.message}`);
         }
       });
     }
@@ -172,9 +172,9 @@
       .then(res => res.json())
       .then(data => {
         if (data && data.serverKeyConfigured) {
-          deltronLog("success", `✅ Server Neural Core Online: Rev ${data.revision || 'cloud-run'} | Access Code '${data.defaultAccessCodeHint || '3030'}' ready.`);
+          deltronLog("success", `[ONLINE] Server Neural Core Online: Rev ${data.revision || 'cloud-run'} | Access Code '${data.defaultAccessCodeHint || '3030'}' ready.`);
           if (aiDiagText && (!currentTrack || !currentTrack.isAIGenerated)) {
-            aiDiagText.innerHTML = `✅ <strong>SERVER NEURAL CORE ACTIVE:</strong> Access code '${escapeHtml(lyrEngine?.accessCode || '3030')}' ready to stream live DeltronZero AI verses.`;
+            aiDiagText.innerHTML = `<strong>[ONLINE] SERVER NEURAL CORE ACTIVE:</strong> Access code '${escapeHtml(lyrEngine?.accessCode || '3030')}' ready to stream live DeltronZero AI verses.`;
           }
           if (aiDiagBox) aiDiagBox.className = "ai-diagnostic-box success";
         } else {
@@ -198,8 +198,8 @@
           lyrEngine.setApiKey(key);
         }
 
-        deltronLog("info", `🧪 TEST AGENT triggered with Access Code='${code}' (Custom Key: ${key ? 'YES' : 'NO'})...`);
-        if (aiDiagText) aiDiagText.innerHTML = "📡 <strong>TESTING CONNECTION:</strong> Contacting DeltronZero AI Agent with access code '" + escapeHtml(code) + "'...";
+        deltronLog("info", `[TEST] Agent test triggered with Access Code='${code}' (Custom Key: ${key ? 'YES' : 'NO'})...`);
+        if (aiDiagText) aiDiagText.innerHTML = "<strong>[TESTING] CONNECTION:</strong> Contacting DeltronZero AI Agent with access code '" + escapeHtml(code) + "'...";
         if (aiDiagBox) aiDiagBox.className = "ai-diagnostic-box";
 
         const originalBtnText = testKeyBtn.innerHTML;
@@ -207,24 +207,24 @@
         const testStart = Date.now();
         const btnTimer = setInterval(() => {
           const sec = ((Date.now() - testStart) / 1000).toFixed(1);
-          testKeyBtn.innerHTML = `⏳ TESTING... [${sec}s]`;
+          testKeyBtn.innerHTML = `TESTING... [${sec}s]`;
         }, 100);
 
         try {
-          deltronLog("ai", "📡 Dispatching neural test prompt to DeltronZero AI Core...");
+          deltronLog("ai", "[PROMPT] Dispatching neural test prompt to DeltronZero AI Core...");
           const testTrack = await lyrEngine.generateTrackAsync("Quantum Spacetime Probe");
           clearInterval(btnTimer);
           testKeyBtn.disabled = false;
 
           if (testTrack && testTrack.isAIGenerated) {
             const sec = ((Date.now() - testStart) / 1000).toFixed(1);
-            testKeyBtn.innerHTML = `✅ VERIFIED (${sec}s)`;
+            testKeyBtn.innerHTML = `VERIFIED (${sec}s)`;
             setTimeout(() => { testKeyBtn.innerHTML = originalBtnText; }, 4000);
 
-            deltronLog("success", `🧠 SUCCESS: Live AI Track Generated in ${sec}s!`);
-            deltronLog("success", `📜 Title: "${testTrack.title}" | Internal Model: ${testTrack.internalModel || testTrack.modelUsed}`);
+            deltronLog("success", `[SUCCESS] Live AI Track Generated in ${sec}s!`);
+            deltronLog("success", `[TRACK] Title: "${testTrack.title}" | Internal Model: ${testTrack.internalModel || testTrack.modelUsed}`);
             if (testTrack.sections?.[1]?.lines?.[0]) {
-              deltronLog("info", `🎙️ Sample Bar 1: "${testTrack.sections[1].lines[0]}"`);
+              deltronLog("info", `[LYRIC] Sample Bar 1: "${testTrack.sections[1].lines[0]}"`);
             }
 
             updateTrackIndicators(testTrack);
@@ -241,13 +241,13 @@
         } catch (err) {
           clearInterval(btnTimer);
           testKeyBtn.disabled = false;
-          testKeyBtn.innerHTML = `⚠️ TEST FAILED`;
+          testKeyBtn.innerHTML = `TEST FAILED`;
           setTimeout(() => { testKeyBtn.innerHTML = originalBtnText; }, 4000);
 
-          deltronLog("error", `❌ Agent Error: ${err.message}`);
+          deltronLog("error", `[ERR] Agent Error: ${err.message}`);
           if (aiDiagBox) aiDiagBox.className = "ai-diagnostic-box error";
           if (aiDiagText) {
-            aiDiagText.innerHTML = `❌ <strong>AGENT ERROR:</strong> ${escapeHtml(err.message)}<br><small>Check that access code is '3030' or enter your API key.</small>`;
+            aiDiagText.innerHTML = `<strong>[ERR] AGENT ERROR:</strong> ${escapeHtml(err.message)}<br><small>Check that access code is '3030' or enter your API key.</small>`;
           }
           updateTrackIndicators(null);
         }
@@ -271,28 +271,28 @@
 
     if (isLiveAi) {
       if (headerAiBadge) {
-        headerAiBadge.innerHTML = `🧠 LIVE AI AGENT <span style="font-size:0.75rem; color:#ff55bb;">(${latency || 'online'})</span>`;
+        headerAiBadge.innerHTML = `[LIVE AI AGENT] <span style="font-size:0.75rem; color:#ff55bb;">(${latency || 'online'})</span>`;
         headerAiBadge.style.color = "var(--neon-magenta)";
       }
       if (trackEngineBadge) {
-        trackEngineBadge.innerHTML = `🧠 LIVE AI: ${escapeHtml(model)} ${latency ? `• ${latency}` : ''}`;
+        trackEngineBadge.innerHTML = `[LIVE AI]: ${escapeHtml(model)} ${latency ? `• ${latency}` : ''}`;
         trackEngineBadge.className = "badge-engine active-llm";
       }
       if (aiEngineBadge) {
-        aiEngineBadge.textContent = "🧠 LIVE AI AGENT ONLINE";
+        aiEngineBadge.textContent = "[LIVE AI AGENT ONLINE]";
         aiEngineBadge.className = "ai-status-badge active-llm";
       }
 
       const spkTag = document.getElementById("tp-speaker-tag");
       if (spkTag) {
-        spkTag.innerHTML = `<span class="mic-icon">🎙️</span> DELTRON ZERO [<strong style="color:var(--neon-magenta);">🧠 LIVE AI: ${escapeHtml(model)}${latency ? ` • ${latency}` : ''}</strong>]:`;
+        spkTag.innerHTML = `<span class="mic-icon">[VOCALS]</span> DELTRON ZERO [<strong style="color:var(--neon-magenta);">LIVE AI: ${escapeHtml(model)}${latency ? ` • ${latency}` : ''}</strong>]:`;
       }
 
       const aiDiagBox = document.getElementById("ai-diagnostic-box");
       const aiDiagText = document.getElementById("ai-diagnostic-text");
       if (aiDiagBox) aiDiagBox.className = "ai-diagnostic-box success";
       if (aiDiagText) {
-        aiDiagText.innerHTML = `✅ <strong>CURRENT TRACK: 100% LIVE AI AGENT GENERATED</strong><br>` +
+        aiDiagText.innerHTML = `<strong>[ONLINE] CURRENT TRACK: 100% LIVE AI AGENT GENERATED</strong><br>` +
           `• <strong>Internal Model:</strong> <code>${escapeHtml(model)}</code><br>` +
           `• <strong>Response Latency:</strong> ${latency || '0ms'}<br>` +
           `• <strong>Track Title:</strong> <em>"${escapeHtml(track.title)}"</em><br>` +
@@ -301,38 +301,38 @@
 
       if (aiActiveInfo) {
         aiActiveInfo.style.display = "block";
-        aiActiveInfo.innerHTML = `✅ <strong>DELTRONZERO AI AGENT ACTIVE:</strong> Generating 100% original multi-syllabic sci-fi verses (${escapeHtml(model)})!`;
+        aiActiveInfo.innerHTML = `<strong>[ONLINE] DELTRONZERO AI AGENT ACTIVE:</strong> Generating 100% original multi-syllabic sci-fi verses (${escapeHtml(model)})!`;
       }
       if (clearKeyBtn) clearKeyBtn.style.display = "inline-flex";
 
     } else {
       if (headerAiBadge) {
-        headerAiBadge.textContent = "⚡ OFFLINE MATRIX";
+        headerAiBadge.textContent = "[OFFLINE MATRIX]";
         headerAiBadge.style.color = "var(--neon-cyan)";
       }
       if (trackEngineBadge) {
-        trackEngineBadge.textContent = "⚡ OFFLINE PROCEDURAL";
+        trackEngineBadge.textContent = "[OFFLINE PROCEDURAL]";
         trackEngineBadge.className = "badge-engine";
       }
       if (aiEngineBadge) {
-        aiEngineBadge.textContent = "⚡ OFFLINE MATRIX";
+        aiEngineBadge.textContent = "[OFFLINE MATRIX]";
         aiEngineBadge.className = "ai-status-badge";
       }
 
       const spkTag = document.getElementById("tp-speaker-tag");
       if (spkTag) {
-        spkTag.innerHTML = `<span class="mic-icon">🎙️</span> DELTRON ZERO [<strong style="color:var(--neon-cyan);">⚡ OFFLINE PROCEDURAL MATRIX</strong>]:`;
+        spkTag.innerHTML = `<span class="mic-icon">[VOCALS]</span> DELTRON ZERO [<strong style="color:var(--neon-cyan);">OFFLINE PROCEDURAL MATRIX</strong>]:`;
       }
 
       const aiDiagBox = document.getElementById("ai-diagnostic-box");
       const aiDiagText = document.getElementById("ai-diagnostic-text");
       if (aiDiagBox) aiDiagBox.className = "ai-diagnostic-box";
       if (aiDiagText) {
-        const reason = track?.fallbackReason || "Operating in Offline Procedural mode. Click 🧪 TEST AGENT to connect.";
-        aiDiagText.innerHTML = `⚡ <strong>CURRENT TRACK: OFFLINE PROCEDURAL MATRIX</strong><br>` +
+        const reason = track?.fallbackReason || "Operating in Offline Procedural mode. Click TEST AGENT to connect.";
+        aiDiagText.innerHTML = `<strong>[OFFLINE] CURRENT TRACK: PROCEDURAL MATRIX</strong><br>` +
           `• <strong>Engine:</strong> Combinatorial 3030 Rhyme Tree<br>` +
           `• <strong>Diagnostics:</strong> <span style="color:#f59e0b;">${escapeHtml(reason)}</span><br>` +
-          `• <strong>Tip:</strong> Click <strong>🧪 TEST AGENT</strong> above to verify live AI connection.`;
+          `• <strong>Tip:</strong> Click <strong>TEST AGENT</strong> above to verify live AI connection.`;
       }
 
       if (aiActiveInfo) aiActiveInfo.style.display = "none";
@@ -359,7 +359,7 @@
 
       const ppBtn = document.getElementById("play-pause-btn");
       if (ppBtn) {
-        ppBtn.innerHTML = `<span class="icon">⏸</span> PAUSE BROADCAST`;
+        ppBtn.innerHTML = `<span class="icon">||</span> PAUSE BROADCAST`;
         ppBtn.classList.add("active");
       }
 
@@ -401,7 +401,7 @@
       if (audEngine) audEngine.stop();
       if (vocEngine) vocEngine.stop();
       if (playPauseBtn) {
-        playPauseBtn.innerHTML = `<span class="icon">▶</span> RESUME BROADCAST`;
+        playPauseBtn.innerHTML = `<span class="icon">&gt;</span> RESUME BROADCAST`;
         playPauseBtn.classList.remove("active");
       }
       if (teleprompterStatusEl) teleprompterStatusEl.textContent = "STATUS: PAUSED";
@@ -409,7 +409,7 @@
       isBroadcasting = true;
       if (audEngine) audEngine.start();
       if (playPauseBtn) {
-        playPauseBtn.innerHTML = `<span class="icon">⏸</span> PAUSE BROADCAST`;
+        playPauseBtn.innerHTML = `<span class="icon">||</span> PAUSE BROADCAST`;
         playPauseBtn.classList.add("active");
       }
       if (teleprompterStatusEl) teleprompterStatusEl.textContent = "STATUS: TRANSMITTING";
@@ -424,13 +424,13 @@
 
     const genStartTime = Date.now();
     const promptLabel = customTheme ? `Theme: "${customTheme}"` : (battleOpponent ? `Rival: "${battleOpponent}"` : "Orbital 3030 Transmission");
-    deltronLog("ai", `⚡ Composing new track (${promptLabel})...`);
+    deltronLog("ai", `[COMPOSE] Synthesizing new track (${promptLabel})...`);
 
     if (teleprompterEl) {
       teleprompterEl.innerHTML = `
         <div class="composing-pulse">
           <div class="composing-spinner"></div>
-          <div>⚡ SYNTHESIZING DELTRON 3030 NEURAL TRACK...</div>
+          <div>SYNTHESIZING DELTRON 3030 NEURAL TRACK...</div>
           <div style="font-size:0.75rem; color:#94a3b8;" id="composing-elapsed-text">Elapsed: 0.0s • Generating multisyllabic stanza from DeltronZero AI Core</div>
         </div>
       `;
@@ -475,7 +475,7 @@
       trackTitleEl.textContent = currentTrack.title;
       updateTrackIndicators(currentTrack);
       appendHistoryTrackHeader(currentTrack);
-      deltronLog(currentTrack.isAIGenerated ? "success" : "info", `🎙️ Track Ready (${totalGenSec}s): "${currentTrack.title}" [${currentTrack.isAIGenerated ? '100% LIVE AI' : 'OFFLINE MATRIX'}]`);
+      deltronLog(currentTrack.isAIGenerated ? "success" : "info", `[TRACK] Ready (${totalGenSec}s): "${currentTrack.title}" [${currentTrack.isAIGenerated ? '100% LIVE AI' : 'OFFLINE MATRIX'}]`);
     }
 
     playSection();
@@ -671,10 +671,10 @@
     const latency = track.latencyMs ? `${track.latencyMs}ms` : null;
 
     const tag = isAi 
-      ? `<span class="badge-history-ai">🧠 LIVE AI: ${escapeHtml(model)}${latency ? ` • ${latency}` : ''}</span>`
-      : `<span class="badge-history-offline">⚡ OFFLINE MATRIX</span>`;
+      ? `<span class="badge-history-ai">[LIVE AI]: ${escapeHtml(model)}${latency ? ` • ${latency}` : ''}</span>`
+      : `<span class="badge-history-offline">[OFFLINE MATRIX]</span>`;
 
-    header.innerHTML = `🔥 <strong>${escapeHtml(title)}</strong> ${tag} <span class="time">${new Date().toLocaleTimeString()}</span>`;
+    header.innerHTML = `// <strong>${escapeHtml(title)}</strong> ${tag} <span class="time">${new Date().toLocaleTimeString()}</span>`;
     historyLogEl.appendChild(header);
     historyLogEl.scrollTop = historyLogEl.scrollHeight;
   }
@@ -723,7 +723,7 @@
           audEngine.setBeatStyle(e.target.value);
           if (bpmSlider) bpmSlider.value = audEngine.bpm;
           if (bpmValDisplay) bpmValDisplay.textContent = `${audEngine.bpm} BPM`;
-          deltronLog("info", `🎛️ Beat preset switched to: ${e.target.value} (${audEngine.bpm} BPM)`);
+          deltronLog("info", `[PRESET] Beat preset switched to: ${e.target.value} (${audEngine.bpm} BPM)`);
         }
       });
     }
@@ -733,7 +733,7 @@
         if (vocEngine) {
           vocEngine.setProfile(e.target.value);
           if (audEngine) audEngine.triggerScratch("chirp");
-          deltronLog("info", `🎙️ Deltron voice profile switched to: ${e.target.value}`);
+          deltronLog("info", `[VOICE] Deltron voice profile switched to: ${e.target.value}`);
         }
       });
     }
@@ -771,8 +771,8 @@
           const isMuted = !vocEngine.isMuted;
           vocEngine.setMute(isMuted);
           muteBtn.classList.toggle("active", isMuted);
-          muteBtn.textContent = isMuted ? "🔇 UNMUTE DELTRON" : "🔊 MUTE VOCALS";
-          deltronLog("info", isMuted ? "🔇 Vocals muted." : "🔊 Vocals unmuted.");
+          muteBtn.textContent = isMuted ? "UNMUTE DELTRON" : "MUTE VOCALS";
+          deltronLog("info", isMuted ? "[AUDIO] Vocals muted." : "[AUDIO] Vocals unmuted.");
         }
       });
     }
@@ -791,9 +791,9 @@
         const code = codeInput ? codeInput.value.trim() : "3030";
         lyrEngine.setAccessCode(code);
         lyrEngine.setApiKey(key);
-        deltronLog("info", `🔑 Custom access configuration saved (Access Code: ${code}).`);
+        deltronLog("info", `[ACCESS] Custom access configuration saved (Access Code: ${code}).`);
         const origText = saveKeyBtn.textContent;
-        saveKeyBtn.textContent = "SAVED! 🧠";
+        saveKeyBtn.textContent = "SAVED!";
         setTimeout(() => saveKeyBtn.textContent = origText, 1800);
         if (isBroadcasting) {
           loadAndPlayTrack();
@@ -820,9 +820,9 @@
         if (!isBroadcasting) window.startBroadcast();
         if (audEngine) audEngine.triggerModemBleep();
         
-        deltronLog("ai", `💡 Lyrical suggestion injected: "${topic}"`);
+        deltronLog("ai", `[SUGGESTION] Lyrical suggestion injected: "${topic}"`);
         const origText = freestyleBtn.innerHTML;
-        freestyleBtn.innerHTML = "✨ INJECTED!";
+        freestyleBtn.innerHTML = "INJECTED!";
         setTimeout(() => freestyleBtn.innerHTML = origText, 1500);
 
         if (teleprompterStatusEl) {
@@ -855,9 +855,9 @@
         if (!isBroadcasting) window.startBroadcast();
         if (audEngine) audEngine.triggerLaserBlast();
         
-        deltronLog("ai", `⚔️ Cyber Battle Initiated against rival MC: "${pickedEnemy}"`);
+        deltronLog("ai", `[BATTLE] Cyber Battle Initiated against rival MC: "${pickedEnemy}"`);
         const origText = battleBtn.innerHTML;
-        battleBtn.innerHTML = `⚔️ SUGGESTED: ${pickedEnemy.toUpperCase()}!`;
+        battleBtn.innerHTML = `BATTLE: ${pickedEnemy.toUpperCase()}!`;
         setTimeout(() => battleBtn.innerHTML = origText, 2000);
 
         loadAndPlayTrack(null, pickedEnemy);
@@ -865,12 +865,12 @@
     }
 
     // Sound FX Pads
-    if (padChirp) padChirp.addEventListener("click", () => { if (audEngine) audEngine.triggerScratch("chirp"); deltronLog("info", "🎧 Kid Koala: Chirp Cut"); padChirp.classList.add("pressed"); setTimeout(() => padChirp.classList.remove("pressed"), 150); });
-    if (padTransform) padTransform.addEventListener("click", () => { if (audEngine) audEngine.triggerScratch("transform"); deltronLog("info", "🎧 Kid Koala: Transform Cut"); padTransform.classList.add("pressed"); setTimeout(() => padTransform.classList.remove("pressed"), 150); });
-    if (padFresh) padFresh.addEventListener("click", () => { if (audEngine) audEngine.triggerScratch("fresh"); deltronLog("info", "🎧 Kid Koala: Fresh Slice"); padFresh.classList.add("pressed"); setTimeout(() => padFresh.classList.remove("pressed"), 150); });
-    if (padLaser) padLaser.addEventListener("click", () => { if (audEngine) audEngine.triggerLaserBlast(); deltronLog("info", "🎧 Sound FX: Laser Blast"); padLaser.classList.add("pressed"); setTimeout(() => padLaser.classList.remove("pressed"), 150); });
-    if (padModem) padModem.addEventListener("click", () => { if (audEngine) audEngine.triggerModemBleep(); deltronLog("info", "🎧 Sound FX: 56k Modem Handshake"); padModem.classList.add("pressed"); setTimeout(() => padModem.classList.remove("pressed"), 150); });
-    if (padSub) padSub.addEventListener("click", () => { if (audEngine) audEngine.triggerSubDrop(); deltronLog("info", "🎧 Sound FX: 808 Sub Bass Drop"); padSub.classList.add("pressed"); setTimeout(() => padSub.classList.remove("pressed"), 150); });
+    if (padChirp) padChirp.addEventListener("click", () => { if (audEngine) audEngine.triggerScratch("chirp"); deltronLog("info", "[SCRATCH] Kid Koala: Chirp Cut"); padChirp.classList.add("pressed"); setTimeout(() => padChirp.classList.remove("pressed"), 150); });
+    if (padTransform) padTransform.addEventListener("click", () => { if (audEngine) audEngine.triggerScratch("transform"); deltronLog("info", "[SCRATCH] Kid Koala: Transform Cut"); padTransform.classList.add("pressed"); setTimeout(() => padTransform.classList.remove("pressed"), 150); });
+    if (padFresh) padFresh.addEventListener("click", () => { if (audEngine) audEngine.triggerScratch("fresh"); deltronLog("info", "[SCRATCH] Kid Koala: Fresh Slice"); padFresh.classList.add("pressed"); setTimeout(() => padFresh.classList.remove("pressed"), 150); });
+    if (padLaser) padLaser.addEventListener("click", () => { if (audEngine) audEngine.triggerLaserBlast(); deltronLog("info", "[SFX] Laser Blast"); padLaser.classList.add("pressed"); setTimeout(() => padLaser.classList.remove("pressed"), 150); });
+    if (padModem) padModem.addEventListener("click", () => { if (audEngine) audEngine.triggerModemBleep(); deltronLog("info", "[SFX] 56k Modem Handshake"); padModem.classList.add("pressed"); setTimeout(() => padModem.classList.remove("pressed"), 150); });
+    if (padSub) padSub.addEventListener("click", () => { if (audEngine) audEngine.triggerSubDrop(); deltronLog("info", "[SFX] 808 Sub Bass Drop"); padSub.classList.add("pressed"); setTimeout(() => padSub.classList.remove("pressed"), 150); });
 
     window.addEventListener("keydown", (e) => {
       if (document.activeElement === freestyleInput || (geminiKeyInput && document.activeElement === geminiKeyInput)) return;
@@ -891,7 +891,7 @@
         const text = historyLogEl.innerText;
         navigator.clipboard.writeText(text).then(() => {
           const orig = copyLyricsBtn.textContent;
-          copyLyricsBtn.textContent = "✅ COPIED TO CLIPBOARD!";
+          copyLyricsBtn.textContent = "COPIED TO CLIPBOARD!";
           setTimeout(() => copyLyricsBtn.textContent = orig, 2000);
         });
       });
