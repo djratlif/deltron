@@ -9,6 +9,7 @@ class DeltronVoiceEngine {
     this.synth = window.speechSynthesis;
     this.voices = [];
     this.isMuted = false;
+    this.volume = 1.0;
     this.currentProfile = "intercom";
     this.userSpeedMultiplier = 1.0;
     this.isSpeaking = false;
@@ -166,6 +167,11 @@ class DeltronVoiceEngine {
     }
   }
 
+  setVolume(val) {
+    this.volume = Math.max(0, Math.min(1.0, parseFloat(val) || 0));
+    console.log(`[VoiceEngine] Voice volume set to: ${this.volume}`);
+  }
+
   /**
    * Speaks a single rap line with word-boundary tracking and resilient timing fallback
    * @param {string} text - The line of lyrics
@@ -253,7 +259,7 @@ class DeltronVoiceEngine {
 
     // Explicit language code is mandatory for iOS Safari WebKit TTS routing
     utterance.lang = (this.selectedVoice && this.selectedVoice.lang) ? this.selectedVoice.lang : "en-US";
-    utterance.volume = 1.0;
+    utterance.volume = this.isMuted ? 0.0 : (typeof this.volume === "number" ? this.volume : 1.0);
     utterance.pitch = profile.pitch;
     utterance.rate = finalRate;
 

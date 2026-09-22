@@ -834,6 +834,16 @@
       });
     }
 
+    const voiceVolumeSliderEl = document.getElementById("voice-volume-slider");
+    const voiceVolumeValEl = document.getElementById("voice-volume-val");
+    if (voiceVolumeSliderEl) {
+      voiceVolumeSliderEl.addEventListener("input", (e) => {
+        const val = parseFloat(e.target.value);
+        if (vocEngine) vocEngine.setVolume(val);
+        if (voiceVolumeValEl) voiceVolumeValEl.textContent = `${Math.round(val * 100)}%`;
+      });
+    }
+
     if (muteBtn) {
       muteBtn.addEventListener("click", () => {
         if (vocEngine) {

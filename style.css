@@ -854,11 +854,11 @@ select:focus {
 
 .sliders-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 600px) {
   .sliders-grid {
     grid-template-columns: 1fr;
   }
