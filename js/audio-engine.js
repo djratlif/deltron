@@ -274,7 +274,7 @@ class DeltronAudioEngine {
   }
 
   setVolume(val) {
-    this.volume = Math.max(0, Math.min(1, val));
+    this.volume = Math.max(0, Math.min(1.25, parseFloat(val) || 0));
     if (this.masterGain && this.ctx) {
       this.masterGain.gain.setTargetAtTime(this.volume, this.ctx.currentTime, 0.05);
     }
