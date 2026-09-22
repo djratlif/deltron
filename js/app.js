@@ -18,6 +18,9 @@
   let liveTimerSeconds = 0;
   let liveInterval = null;
   let isGeneratingTrack = false;
+  let beatAlternateMode = true;
+  let alternateBeatIndex = 0;
+  const alternatingStyles = ["anthem3030", "chunkySub3030"];
 
   // DOM Elements References
   let startModal, startBtn, playPauseBtn, nextTrackBtn, beatSelect, voiceSelect;
@@ -448,10 +451,30 @@
     }
   }
 
+  function applyBeatStyle(styleKey, logNotice = true) {
+    if (!audEngine) return;
+    audEngine.setBeatStyle(styleKey);
+    if (bpmSlider) bpmSlider.value = audEngine.bpm;
+    if (bpmValDisplay) bpmValDisplay.textContent = `${audEngine.bpm} BPM`;
+    const styleName = audEngine.beatStyles[styleKey]?.name || styleKey;
+    if (logNotice) {
+      deltronLog("info", `[BEAT] Track style: ${styleName} (${audEngine.bpm} BPM)`);
+    }
+  }
+
   async function loadAndPlayTrack(customTheme = null, battleOpponent = null) {
     if (isGeneratingTrack) return;
     isGeneratingTrack = true;
     if (vocEngine) vocEngine.stop();
+
+    // Alternate between the two core flagship track styles on each track
+    if (beatAlternateMode) {
+      const nextStyle = alternatingStyles[alternateBeatIndex % alternatingStyles.length];
+      alternateBeatIndex++;
+      applyBeatStyle(nextStyle, false);
+      const styleName = audEngine?.beatStyles?.[nextStyle]?.name || nextStyle;
+      deltronLog("info", `[STYLE] Auto-Alternating track beat to: ${styleName} (${audEngine?.bpm || 90} BPM)`);
+    }
 
     const genStartTime = Date.now();
     const promptLabel = customTheme ? `Theme: "${customTheme}"` : (battleOpponent ? `Rival: "${battleOpponent}"` : "Orbital 3030 Transmission");
@@ -750,11 +773,15 @@
 
     if (beatSelect) {
       beatSelect.addEventListener("change", (e) => {
-        if (audEngine) {
-          audEngine.setBeatStyle(e.target.value);
-          if (bpmSlider) bpmSlider.value = audEngine.bpm;
-          if (bpmValDisplay) bpmValDisplay.textContent = `${audEngine.bpm} BPM`;
-          deltronLog("info", `[PRESET] Beat preset switched to: ${e.target.value} (${audEngine.bpm} BPM)`);
+        const val = e.target.value;
+        if (val === "alternate") {
+          beatAlternateMode = true;
+          const nextStyle = alternatingStyles[alternateBeatIndex % alternatingStyles.length];
+          applyBeatStyle(nextStyle);
+          deltronLog("info", `[PRESET] Beat mode: Auto-Alternating (Galactic Suite x Chunky Sub-Bass)`);
+        } else {
+          beatAlternateMode = false;
+          applyBeatStyle(val);
         }
       });
     }

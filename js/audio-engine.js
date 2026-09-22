@@ -46,6 +46,26 @@ class DeltronAudioEngine {
           [123.47, 155.56, 185.00, 220.00]  // B diminished / G7
         ]
       },
+      chunkySub3030: {
+        name: "Chunky 3030 Sub-Bass Heavy",
+        bpm: 86,
+        bassRoot: 31, // G1 (deep ground-shaking sub root)
+        scale: [0, 3, 5, 6, 7, 10], // Heavy minor/blues/pentatonic
+        drumPattern: {
+          kick:  [1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0], // Chunky double-kick MPC groove
+          snare: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1], // Heavy crisp snare with ghost accent
+          hihat: [1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0], // Syncopated boom-bap swing
+          openHat:[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+          perc:  [0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1]  // Chunky rimshot & metallic percussion
+        },
+        bassPattern: [1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0], // Heavy driving sub-bassline
+        chordFreqs: [
+          [98.00, 116.54, 146.83, 174.61],  // G minor 7
+          [87.31, 110.00, 130.81, 164.81],  // F minor 7
+          [82.41, 103.83, 123.47, 155.56],  // Eb minor 7
+          [92.50, 116.54, 138.59, 174.61]   // Gb7 / D7alt
+        ]
+      },
       papyrusVirus: {
         name: "Papyrus Virus (Cyber Glitch)",
         bpm: 88,
@@ -358,34 +378,36 @@ class DeltronAudioEngine {
   playKick(time) {
     if (!this.ctx || !this.masterGain) return;
     const t = Math.max(this.ctx.currentTime, time);
+    const isChunky = this.currentStyle === "chunkySub3030";
+
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
 
     osc.type = "sine";
-    osc.frequency.setValueAtTime(140, t);
-    osc.frequency.exponentialRampToValueAtTime(38, t + 0.12);
+    osc.frequency.setValueAtTime(isChunky ? 165 : 140, t);
+    osc.frequency.exponentialRampToValueAtTime(isChunky ? 30 : 38, t + (isChunky ? 0.16 : 0.12));
 
-    gain.gain.setValueAtTime(1.1, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+    gain.gain.setValueAtTime(isChunky ? 1.25 : 1.1, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + (isChunky ? 0.45 : 0.35));
 
     osc.connect(gain);
     gain.connect(this.masterGain);
 
     osc.start(t);
-    osc.stop(t + 0.35);
+    osc.stop(t + (isChunky ? 0.45 : 0.35));
 
     // Punch transient click
     const click = this.ctx.createOscillator();
     const clickGain = this.ctx.createGain();
     click.type = "triangle";
-    click.frequency.setValueAtTime(300, t);
-    click.frequency.exponentialRampToValueAtTime(80, t + 0.02);
-    clickGain.gain.setValueAtTime(0.5, t);
-    clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.02);
+    click.frequency.setValueAtTime(isChunky ? 340 : 300, t);
+    click.frequency.exponentialRampToValueAtTime(70, t + 0.025);
+    clickGain.gain.setValueAtTime(isChunky ? 0.65 : 0.5, t);
+    clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.025);
     click.connect(clickGain);
     clickGain.connect(this.masterGain);
     click.start(t);
-    click.stop(t + 0.02);
+    click.stop(t + 0.025);
   }
 
   playSnare(time) {
@@ -505,27 +527,33 @@ class DeltronAudioEngine {
   playBass(time, freq, duration) {
     if (!this.ctx || !this.masterGain) return;
     const t = Math.max(this.ctx.currentTime, time);
+    const isChunky = this.currentStyle === "chunkySub3030";
+    const bassDuration = isChunky ? Math.min(0.35, duration * 1.35) : duration;
+
     const osc = this.ctx.createOscillator();
     const filter = this.ctx.createBiquadFilter();
     const gain = this.ctx.createGain();
 
-    osc.type = "sawtooth";
+    osc.type = isChunky ? "triangle" : "sawtooth";
     osc.frequency.setValueAtTime(freq, t);
 
     filter.type = "lowpass";
-    filter.frequency.setValueAtTime(260, t);
-    filter.frequency.exponentialRampToValueAtTime(100, t + duration);
+    filter.frequency.setValueAtTime(isChunky ? 220 : 260, t);
+    filter.frequency.exponentialRampToValueAtTime(isChunky ? 60 : 100, t + bassDuration);
 
-    gain.gain.setValueAtTime(0.7, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+    gain.gain.setValueAtTime(isChunky ? 0.85 : 0.7, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + bassDuration);
 
-    // Sub-oscillator for fat low end
+    // Sub-oscillator for fat ground-shaking low end
     const subOsc = this.ctx.createOscillator();
     subOsc.type = "sine";
     subOsc.frequency.setValueAtTime(freq / 2, t);
+    if (isChunky) {
+      subOsc.frequency.exponentialRampToValueAtTime(freq / 2 * 0.95, t + bassDuration);
+    }
     const subGain = this.ctx.createGain();
-    subGain.gain.setValueAtTime(0.85, t);
-    subGain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+    subGain.gain.setValueAtTime(isChunky ? 1.05 : 0.85, t);
+    subGain.gain.exponentialRampToValueAtTime(0.001, t + bassDuration);
 
     osc.connect(filter);
     filter.connect(gain);
@@ -536,8 +564,8 @@ class DeltronAudioEngine {
 
     osc.start(t);
     subOsc.start(t);
-    osc.stop(t + duration);
-    subOsc.stop(t + duration);
+    osc.stop(t + bassDuration);
+    subOsc.stop(t + bassDuration);
   }
 
   playSciFiChord(time, freqs, duration) {
