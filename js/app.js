@@ -69,6 +69,19 @@
   function initDOM() {
     initEngines();
 
+    // Global iOS / iPadOS Touch Audio Unlock Handler
+    const unlockAudioMobile = () => {
+      if (audEngine) {
+        audEngine.unlockAudio();
+        if (audEngine.ctx && audEngine.ctx.state !== "running") {
+          audEngine.ctx.resume().catch(() => {});
+        }
+      }
+    };
+    ["touchstart", "touchend", "pointerdown", "click"].forEach((evt) => {
+      document.addEventListener(evt, unlockAudioMobile, { passive: true, capture: true });
+    });
+
     startModal = document.getElementById("start-modal");
     startBtn = document.getElementById("start-broadcast-btn");
     playPauseBtn = document.getElementById("play-pause-btn");
@@ -365,6 +378,7 @@
 
       if (audEngine) {
         try {
+          audEngine.unlockAudio();
           audEngine.start();
         } catch (e) {
           console.warn("Audio Context startup note:", e);
@@ -407,7 +421,10 @@
       if (teleprompterStatusEl) teleprompterStatusEl.textContent = "STATUS: PAUSED";
     } else {
       isBroadcasting = true;
-      if (audEngine) audEngine.start();
+      if (audEngine) {
+        audEngine.unlockAudio();
+        audEngine.start();
+      }
       if (playPauseBtn) {
         playPauseBtn.innerHTML = `<span class="icon">||</span> PAUSE BROADCAST`;
         playPauseBtn.classList.add("active");

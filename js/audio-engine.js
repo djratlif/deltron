@@ -135,6 +135,7 @@ class DeltronAudioEngine {
   init() {
     if (this.ctx) return;
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
     this.ctx = new AudioContextClass();
 
     // Master bus
@@ -159,52 +160,89 @@ class DeltronAudioEngine {
     this.compressor.connect(this.analyser);
     this.analyser.connect(this.ctx.destination);
 
-    // Setup Continuous Vinyl Crackle Generator
+    // Context state change handler (resumes scheduler if audio was interrupted on iOS)
+    this.ctx.onstatechange = () => {
+      if (this.ctx.state === "running" && this.isPlaying && !this.timerID) {
+        this.nextNoteTime = this.ctx.currentTime + 0.05;
+        this.scheduler();
+      }
+    };
+
+    // Setup Continuous Vinyl Crackle Generator safely
     this.setupVinylCrackle();
   }
 
-  setupVinylCrackle() {
-    // Generate pink noise buffer with random crackle pops
-    const bufferSize = this.ctx.sampleRate * 3;
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-
-    for (let i = 0; i < bufferSize; i++) {
-      const white = Math.random() * 2 - 1;
-      b0 = 0.99886 * b0 + white * 0.0555179;
-      b1 = 0.99332 * b1 + white * 0.0750759;
-      b2 = 0.96900 * b2 + white * 0.1538520;
-      b3 = 0.86650 * b3 + white * 0.3104856;
-      b4 = 0.55000 * b4 + white * 0.5329522;
-      b5 = -0.7616 * b5 - white * 0.0168980;
-      let pink = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-      b6 = white * 0.115926;
-
-      // Occasional needle pop / vinyl dust click
-      if (Math.random() < 0.0003) {
-        pink += (Math.random() * 2 - 1) * 3.5;
+  /**
+   * Unlocks Web Audio hardware output on iOS/iPadOS Safari
+   */
+  unlockAudio() {
+    try {
+      if (!this.ctx) {
+        this.init();
       }
-      data[i] = pink * 0.04;
+      if (this.ctx && this.ctx.state !== "running") {
+        this.ctx.resume().catch(() => {});
+      }
+      if (this.ctx) {
+        const silentBuffer = this.ctx.createBuffer(1, 1, 22050);
+        const source = this.ctx.createBufferSource();
+        source.buffer = silentBuffer;
+        source.connect(this.ctx.destination);
+        source.start(0);
+      }
+    } catch (e) {
+      // Handled silently
     }
+  }
 
-    const noiseSource = this.ctx.createBufferSource();
-    noiseSource.buffer = buffer;
-    noiseSource.loop = true;
+  setupVinylCrackle() {
+    try {
+      if (!this.ctx || !this.masterGain) return;
 
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = "bandpass";
-    filter.frequency.setValueAtTime(1400, this.ctx.currentTime);
-    filter.Q.setValueAtTime(1.2, this.ctx.currentTime);
+      // Generate pink noise buffer with random crackle pops
+      const bufferSize = this.ctx.sampleRate * 3;
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
 
-    this.vinylGain = this.ctx.createGain();
-    this.vinylGain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        b3 = 0.86650 * b3 + white * 0.3104856;
+        b4 = 0.55000 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.0168980;
+        let pink = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+        b6 = white * 0.115926;
 
-    noiseSource.connect(filter);
-    filter.connect(this.vinylGain);
-    this.vinylGain.connect(this.masterGain);
+        // Occasional needle pop / vinyl dust click
+        if (Math.random() < 0.0003) {
+          pink += (Math.random() * 2 - 1) * 3.5;
+        }
+        data[i] = pink * 0.04;
+      }
 
-    noiseSource.start();
+      const noiseSource = this.ctx.createBufferSource();
+      noiseSource.buffer = buffer;
+      noiseSource.loop = true;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.setValueAtTime(1400, this.ctx.currentTime);
+      filter.Q.setValueAtTime(1.2, this.ctx.currentTime);
+
+      this.vinylGain = this.ctx.createGain();
+      this.vinylGain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+
+      noiseSource.connect(filter);
+      filter.connect(this.vinylGain);
+      this.vinylGain.connect(this.masterGain);
+
+      noiseSource.start(0);
+    } catch (err) {
+      console.warn("Vinyl crackle initialization note:", err);
+    }
   }
 
   /**
@@ -212,14 +250,15 @@ class DeltronAudioEngine {
    */
   start() {
     this.init();
-    if (this.ctx.state === "suspended") {
-      this.ctx.resume();
+    this.unlockAudio();
+    if (this.ctx && this.ctx.state !== "running") {
+      this.ctx.resume().catch(() => {});
     }
     if (this.isPlaying) return;
 
     this.isPlaying = true;
     this.step = 0;
-    this.nextNoteTime = this.ctx.currentTime + 0.05;
+    this.nextNoteTime = (this.ctx ? this.ctx.currentTime : 0) + 0.05;
     this.bpm = this.beatStyles[this.currentStyle].bpm;
 
     this.scheduler();
@@ -252,7 +291,12 @@ class DeltronAudioEngine {
   }
 
   scheduler() {
-    if (!this.isPlaying) return;
+    if (!this.isPlaying || !this.ctx) return;
+
+    // Resync nextNoteTime if it falls behind currentTime (common on iOS when resuming or after backgrounding)
+    if (this.nextNoteTime < this.ctx.currentTime) {
+      this.nextNoteTime = this.ctx.currentTime + 0.02;
+    }
 
     while (this.nextNoteTime < this.ctx.currentTime + this.scheduleAheadTime) {
       this.scheduleStep(this.step, this.nextNoteTime);
