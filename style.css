@@ -325,75 +325,7 @@ body.crt-off .crt-overlay {
   text-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
 }
 
-/* Prominent Over-Rap AI Mode Banner */
-.ai-mode-banner {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-  background: rgba(11, 24, 40, 0.85);
-  border: 1px solid var(--border-cyan);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
-  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
 
-.ai-mode-banner.llm-mode {
-  background: linear-gradient(90deg, rgba(35, 10, 30, 0.9) 0%, rgba(20, 10, 35, 0.9) 100%);
-  border: 1px solid var(--neon-magenta);
-  box-shadow: 0 0 20px rgba(255, 0, 127, 0.35), inset 0 0 15px rgba(255, 0, 127, 0.15);
-}
-
-.banner-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.banner-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--neon-cyan);
-  box-shadow: 0 0 8px var(--neon-cyan);
-  display: inline-block;
-  animation: pulseAiDot 1.5s infinite ease-in-out;
-}
-
-.ai-mode-banner.llm-mode .banner-dot {
-  background: var(--neon-magenta);
-  box-shadow: 0 0 12px var(--neon-magenta);
-}
-
-@keyframes pulseAiDot {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.4); opacity: 0.5; }
-}
-
-.banner-title {
-  font-family: var(--font-display);
-  font-size: 0.88rem;
-  font-weight: 800;
-  letter-spacing: 1px;
-  color: var(--neon-cyan);
-}
-
-.ai-mode-banner.llm-mode .banner-title {
-  color: #ff55aa;
-  text-shadow: 0 0 10px rgba(255, 0, 127, 0.5);
-}
-
-.banner-meta {
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  letter-spacing: 0.5px;
-}
-
-.ai-mode-banner.llm-mode .banner-meta {
-  color: #ff99cc;
-}
 
 /* Audio Deck & Turntable Platter */
 .audio-deck {
@@ -1513,19 +1445,6 @@ input[type="range"]::-webkit-slider-thumb {
   .badge-section, .badge-bpm, .badge-verses, .badge-engine {
     font-size: 0.72rem;
     padding: 2px 6px;
-  }
-
-  .ai-mode-banner {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    padding: 10px 12px;
-  }
-
-  .ai-mode-banner .banner-right {
-    width: 100%;
-    display: flex;
-    justify-content: flex-end;
   }
 
   .audio-deck {

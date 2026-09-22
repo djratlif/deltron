@@ -23,7 +23,7 @@
   let startModal, startBtn, playPauseBtn, nextTrackBtn, beatSelect, voiceSelect;
   let bpmSlider, bpmValDisplay, volumeSlider, muteBtn, crtToggle;
   let geminiKeyInput, saveKeyBtn, clearKeyBtn, aiActiveInfo, aiEngineBadge;
-  let headerAiBadge, trackEngineBadge, aiModeBanner, bannerCoreTitle, bannerCoreMeta;
+  let headerAiBadge, trackEngineBadge;
   let trackTitleEl, sectionTitleEl, teleprompterEl, teleprompterStatusEl;
   let verseCounterEl, listenerCountEl, streamTimerEl, historyLogEl, copyLyricsBtn, downloadTrackBtn;
   let freestyleInput, freestyleBtn, battleBtn;
@@ -91,9 +91,6 @@
     aiEngineBadge = document.getElementById("ai-engine-badge");
     headerAiBadge = document.getElementById("header-ai-badge");
     trackEngineBadge = document.getElementById("track-engine-badge");
-    aiModeBanner = document.getElementById("ai-mode-banner");
-    bannerCoreTitle = document.getElementById("banner-core-title");
-    bannerCoreMeta = document.getElementById("banner-core-meta");
 
     trackTitleEl = document.getElementById("track-title");
     sectionTitleEl = document.getElementById("section-title");
@@ -285,15 +282,6 @@
         aiEngineBadge.textContent = "🧠 LIVE AI AGENT ONLINE";
         aiEngineBadge.className = "ai-status-badge active-llm";
       }
-      if (aiModeBanner) {
-        aiModeBanner.className = "ai-mode-banner llm-mode";
-      }
-      if (bannerCoreTitle) {
-        bannerCoreTitle.innerHTML = `🧠 NEURAL CORE: LIVE DELTRONZERO AI AGENT [${escapeHtml(model)}${latency ? ` • ${latency}` : ''}]`;
-      }
-      if (bannerCoreMeta) {
-        bannerCoreMeta.textContent = "100% REAL-TIME PROMPTED AI • ORIGINAL SCI-FI CADENCE";
-      }
 
       const spkTag = document.getElementById("tp-speaker-tag");
       if (spkTag) {
@@ -329,15 +317,6 @@
       if (aiEngineBadge) {
         aiEngineBadge.textContent = "⚡ OFFLINE MATRIX";
         aiEngineBadge.className = "ai-status-badge";
-      }
-      if (aiModeBanner) {
-        aiModeBanner.className = "ai-mode-banner";
-      }
-      if (bannerCoreTitle) {
-        bannerCoreTitle.textContent = "⚡ LYRIC CORE: OFFLINE 3030 PROCEDURAL MATRIX";
-      }
-      if (bannerCoreMeta) {
-        bannerCoreMeta.textContent = "COMBINATORIAL RHYME TREE • (CLICK TEST AGENT TO VERIFY AI)";
       }
 
       const spkTag = document.getElementById("tp-speaker-tag");
