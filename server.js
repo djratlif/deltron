@@ -37,7 +37,7 @@ app.get('/api/status', (req, res) => {
     accessCodeRequired: true,
     defaultAccessCodeHint: '3030',
     revision: process.env.K_REVISION || 'local-dev',
-    version: '3030.9'
+    version: '3030.10'
   });
 });
 

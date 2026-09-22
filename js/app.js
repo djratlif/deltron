@@ -481,16 +481,6 @@
     playSection();
   }
 
-  function playSection() {
-    if (!isBroadcasting || !currentTrack) return;
-
-    if (currentSectionIndex >= currentTrack.sections.length) {
-      setTimeout(() => {
-        if (isBroadcasting) loadAndPlayTrack();
-      }, 2000);
-      return;
-    }
-
   function cleanLyricLine(rawLine) {
     if (!rawLine || typeof rawLine !== "string") return null;
     let l = rawLine.trim();
