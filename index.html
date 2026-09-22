@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#05070d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>DELTRON ZERO // 3030 24/7 AI RAP BOT</title>
+  <meta name="description" content="24/7 AI Rap Bot embodying Deltron Zero from Deltron 3030. Infinite sci-fi boom-bap, cyberpunk verses, real-time beat synthesizer, and interactive rap battles.">
+  
+  <!-- Google Fonts: Futuristic & Terminal Monospace -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="style.css?v=3030.7">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
+</head>
+<body>
+  <!-- CRT Scanlines & Screen Vignette Overlay -->
+  <div class="crt-overlay"></div>
+  <div class="stars-bg"></div>
+
+  <!-- Main HUD Grid Layout -->
+  <div class="hud-container">
+    
+    <!-- Top System Telemetry Bar -->
+    <header class="hud-header">
+      <div class="telemetry-item brand">
+        <span class="glitch-text" data-text="DELTRON ZERO // 3030">DELTRON ZERO // 3030</span>
+        <span class="sub-brand">MAINFRAME BROADCAST TERMINAL</span>
+      </div>
+      <div class="telemetry-item live-indicator">
+        <span class="pulse-dot"></span>
+        <span class="status-label">TRANSMITTING LIVE 24/7</span>
+      </div>
+      <div class="telemetry-item">
+        <span class="meta-label">AI CORE:</span>
+        <span class="meta-val" id="header-ai-badge">⚡ OFFLINE MATRIX</span>
+      </div>
+      <div class="telemetry-item">
+        <span class="meta-label">FREQUENCY:</span>
+        <span class="meta-val">3030.88 MHz</span>
+      </div>
+      <div class="telemetry-item">
+        <span class="meta-label">ORBIT:</span>
+        <span class="meta-val">MARS STATION 9 // APOLLO 9</span>
+      </div>
+      <div class="telemetry-item">
+        <span class="meta-label">LISTENERS:</span>
+        <span class="meta-val" id="listener-count">3,482</span>
+      </div>
+      <div class="telemetry-item">
+        <span class="meta-label">UPTIME:</span>
+        <span class="meta-val" id="stream-timer">00:00:00</span>
+      </div>
+      <div class="telemetry-item crt-switch-wrap">
+        <label class="crt-label" for="crt-toggle">CRT</label>
+        <input type="checkbox" id="crt-toggle" checked title="Toggle CRT Scanline Filter">
+      </div>
+    </header>
+
+    <!-- Main Content Workspace -->
+    <main class="hud-main">
+      
+      <!-- Left Column: Visualizer, Deck & Master Teleprompter -->
+      <section class="hud-panel left-panel">
+        
+        <!-- Track & Section Header -->
+        <div class="track-info-card">
+          <div class="track-badge-row">
+            <span class="badge-section" id="section-title">[ INTRO ] APOLLO 9 PROTOCOL</span>
+            <span class="badge-bpm" id="bpm-val">90 BPM</span>
+            <span class="badge-verses">VERSES: <strong id="verse-counter">1</strong></span>
+            <span class="badge-engine" id="track-engine-badge">⚡ OFFLINE ENGINE</span>
+          </div>
+          <h1 class="track-title" id="track-title">TRANSMISSION 3030-INIT // DELTRON ZERO EMERGENCE</h1>
+        </div>
+
+        <!-- Audio Deck & Turntable Visualizer -->
+        <div class="audio-deck">
+          <div class="deck-platter">
+            <div class="turntable-vinyl">
+              <div class="vinyl-grooves"></div>
+              <div class="vinyl-center">
+                <div class="center-label">3030</div>
+              </div>
+            </div>
+            <div class="tonearm"></div>
+          </div>
+
+          <div class="deck-visualizer-wrap">
+            <div class="vis-header">
+              <span>SPECTRUM ANALYZER & OSCILLOSCOPE</span>
+              <span class="vis-mode">REAL-TIME FFT 256</span>
+            </div>
+            <canvas id="visualizer-canvas"></canvas>
+          </div>
+        </div>
+
+        <!-- Prominent Over-Rap AI Mode Banner -->
+        <div class="ai-mode-banner" id="ai-mode-banner">
+          <div class="banner-left">
+            <span class="banner-dot"></span>
+            <span class="banner-title" id="banner-core-title">⚡ LYRIC CORE: OFFLINE 3030 PROCEDURAL MATRIX</span>
+          </div>
+          <div class="banner-right">
+            <span class="banner-meta" id="banner-core-meta">COMBINATORIAL RHYME ENGINE</span>
+          </div>
+        </div>
+
+        <!-- Master Teleprompter / Full Verse Stanza Stream -->
+        <div class="teleprompter-card">
+          <div class="teleprompter-header">
+            <div class="speaker-tag" id="tp-speaker-tag">
+              <span class="mic-icon">🎙️</span> DELTRON ZERO // LIVE VOCAL CADENCE:
+            </div>
+            <div class="teleprompter-status" id="teleprompter-status">STATUS: STANDBY</div>
+          </div>
+          <div class="verse-teleprompter" id="verse-teleprompter">
+            <div class="intro-placeholder">
+              >> [Click <strong>CONNECT TO MAINFRAME // START 24/7 RAP BROADCAST</strong> to initialize live flow]
+            </div>
+          </div>
+        </div>
+
+        <!-- Master Playback Transport Controls -->
+        <div class="transport-controls">
+          <button id="play-pause-btn" class="btn btn-primary" title="Play or Pause 24/7 Broadcast">
+            <span class="icon">⏸</span> PAUSE BROADCAST
+          </button>
+          <button id="next-track-btn" class="btn btn-secondary" title="Skip to Next Generated Deltron Track">
+            <span class="icon">⏭</span> NEXT 3030 TRACK
+          </button>
+          <button id="mute-btn" class="btn btn-outline" title="Mute or Unmute Deltron's Vocals">
+            🔊 MUTE VOCALS
+          </button>
+        </div>
+      </section>
+
+      <!-- Right Column: Command Controls, Freestyle Injector & Scratch Pads -->
+      <section class="hud-panel right-panel">
+        
+        <!-- AI Neural Core / DeltronZero AI Agent Key & Access Code -->
+        <div class="control-box ai-core-box" id="ai-core-box-panel">
+          <div class="box-title">
+            <span>🧠 DELTRONZERO AI AGENT // NEURAL CORE</span>
+            <span class="ai-status-badge" id="ai-engine-badge">⚡ OFFLINE MATRIX</span>
+          </div>
+          <p class="box-desc">Access server-side neural core via Access Code (<strong>3030</strong>) or custom key:</p>
+          <div class="input-group">
+            <input type="text" id="access-code-input" value="3030" placeholder="Code: 3030" autocomplete="off" style="max-width: 130px;" title="Access Code for Server-side AI Key">
+            <input type="password" id="gemini-key-input" placeholder="Or custom AI Key (Optional)..." autocomplete="off">
+            <button id="save-key-btn" class="btn btn-secondary">CONNECT</button>
+            <button id="test-key-btn" class="btn btn-accent" title="Test Neural Agent Connection & Inspect Raw Output">🧪 TEST AGENT</button>
+            <button id="clear-key-btn" class="btn btn-outline" style="display: none;" title="Disconnect and return to Offline Mode">DISCONNECT</button>
+          </div>
+          <div class="ai-active-info" id="ai-active-info" style="display: none;">
+            ✅ <strong>DELTRONZERO AI AGENT CONNECTED:</strong> Generating 100% original multi-syllabic sci-fi verses via live neural core!
+          </div>
+          <div class="ai-diagnostic-box" id="ai-diagnostic-box">
+            <span class="diag-label">AGENT DIAGNOSTIC:</span>
+            <span class="diag-text" id="ai-diagnostic-text">Access code 3030 active. Ready to stream live neural output.</span>
+          </div>
+
+          <!-- Real-Time Telemetry & Diagnostics Log Console -->
+          <div class="terminal-log-container" id="terminal-log-panel">
+            <div class="terminal-log-header">
+              <div class="terminal-log-title">
+                <span class="status-dot online" id="terminal-status-dot"></span>
+                <span>📟 REAL-TIME TELEMETRY & DIAGNOSTICS FEED</span>
+              </div>
+              <div class="terminal-actions">
+                <button id="ping-diagnostics-btn" class="btn-micro" title="Ping Server & Fetch Diagnostics">📡 PING SERVER</button>
+                <button id="clear-diag-btn" class="btn-micro" title="Clear Console Log">🧹 CLEAR</button>
+              </div>
+            </div>
+            <div class="terminal-log-body" id="realtime-log-feed">
+              <div class="log-entry info"><span class="log-ts">[BOOT]</span> <span class="log-msg">DeltronZero AI Agent telemetry terminal initialized. Target: deltron.drewratliff.com</span></div>
+            </div>
+          </div>
+
+          <div class="ai-hint">
+            *Access code '3030' unlocks the server-stored AI key on Google Cloud Run without exposing secrets.
+          </div>
+        </div>
+
+        <!-- Lyrical Topic & Theme Suggestions for DeltronZero AI Agent -->
+        <div class="control-box freestyle-box">
+          <div class="box-title">
+            <span>💡 SUGGEST TOPIC // LYRICAL INSPIRATION INJECTOR</span>
+          </div>
+          <p class="box-desc">Suggest concepts, sci-fi themes, or corporate adversaries for the DeltronZero AI Agent to weave into its lyrics:</p>
+          <div class="input-group">
+            <input type="text" id="freestyle-input" placeholder="Suggest a topic (e.g., Quantum Virus, Martian Colonists, Silicon Overlords)..." autocomplete="off">
+            <button id="freestyle-btn" class="btn btn-accent">💡 INJECT SUGGESTION</button>
+          </div>
+          <div class="quick-battle-row">
+            <button id="battle-btn" class="btn btn-danger">⚔️ SUGGEST CYBER BATTLE OPPONENT</button>
+          </div>
+        </div>
+
+        <!-- Synthesizer Beat & Cyborg Voice Matrix -->
+        <div class="control-box synth-matrix">
+          <div class="box-title">
+            <span>🎛️ AUTOMATOR BEAT & CYBORG VOICE MATRIX</span>
+          </div>
+          <div class="matrix-grid">
+            <div class="matrix-field">
+              <label for="beat-style-select">BEAT STYLE PRESET:</label>
+              <select id="beat-style-select">
+                <option value="anthem3030">3030 Galactic Suite (90 BPM)</option>
+                <option value="papyrusVirus">Papyrus Virus Glitch (88 BPM)</option>
+                <option value="memoryLoss">Memory Loss Lo-Fi (85 BPM)</option>
+                <option value="neuromancerFunk">Neuromancer Funk (94 BPM)</option>
+                <option value="apollo9Orbit">Apollo 9 Mars Orbit (88 BPM)</option>
+              </select>
+            </div>
+            <div class="matrix-field">
+              <label for="voice-profile-select">DELTRON VOICE PROFILE:</label>
+              <select id="voice-profile-select">
+                <option value="intercom" selected>Deltron Intercom 3030 (UK Relay)</option>
+                <option value="cyborg">Cyborg Mech (Alex / US Robot)</option>
+                <option value="commander">Cyber Commander (Deep Heavy Bass)</option>
+                <option value="synthetica">Synthetica (Female Cyber Core)</option>
+                <option value="zarvox">Zarvox (8-Bit Retro Robot)</option>
+                <option value="rawMic">Raw Microphone Flow (Natural MC)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="sliders-grid">
+            <div class="slider-field">
+              <div class="slider-header-row">
+                <label for="bpm-slider">BEAT TEMPO:</label>
+                <span class="slider-val-badge" id="bpm-val">90 BPM</span>
+              </div>
+              <input type="range" id="bpm-slider" min="70" max="110" value="90">
+            </div>
+            <div class="slider-field">
+              <div class="slider-header-row">
+                <label for="voice-speed-slider">VOICE FLOW RATE:</label>
+                <span class="slider-val-badge" id="voice-speed-val">1.00x</span>
+              </div>
+              <input type="range" id="voice-speed-slider" min="0.6" max="1.6" step="0.05" value="1.0" title="Independent Voice Cadence Speed Slider">
+            </div>
+            <div class="slider-field">
+              <div class="slider-header-row">
+                <label for="volume-slider">MASTER VOLUME:</label>
+                <span class="slider-val-badge" id="volume-val">80%</span>
+              </div>
+              <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.8">
+            </div>
+          </div>
+        </div>
+
+        <!-- Kid Koala Scratch & Sound FX Board -->
+        <div class="control-box fx-box">
+          <div class="box-title">
+            <span>🎧 KID KOALA TURNTABLE SCRATCH & FX PADS <span class="hotkeys-hint">(Keys 1-6)</span></span>
+          </div>
+          <div class="pads-grid">
+            <button class="pad-btn" id="pad-chirp">
+              <span class="pad-num">[1]</span>
+              <span class="pad-label">CHIRP CUT</span>
+            </button>
+            <button class="pad-btn" id="pad-transform">
+              <span class="pad-num">[2]</span>
+              <span class="pad-label">TRANSFORM</span>
+            </button>
+            <button class="pad-btn" id="pad-fresh">
+              <span class="pad-num">[3]</span>
+              <span class="pad-label">FRESH SLICE</span>
+            </button>
+            <button class="pad-btn" id="pad-laser">
+              <span class="pad-num">[4]</span>
+              <span class="pad-label">LASER BLAST</span>
+            </button>
+            <button class="pad-btn" id="pad-modem">
+              <span class="pad-num">[5]</span>
+              <span class="pad-label">MODEM BLEEP</span>
+            </button>
+            <button class="pad-btn" id="pad-sub">
+              <span class="pad-num">[6]</span>
+              <span class="pad-label">SUB DROP 808</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Archive & Lyrics History -->
+        <div class="control-box history-box">
+          <div class="box-title">
+            <span>📜 3030 LYRIC TRANSMISSION ARCHIVE</span>
+            <div class="archive-actions">
+              <button id="copy-lyrics-btn" class="btn-micro" title="Copy Current Archive to Clipboard">📋 COPY</button>
+              <button id="download-track-btn" class="btn-micro" title="Download Full Lyric Text">💾 EXPORT</button>
+            </div>
+          </div>
+          <div class="history-log" id="lyrics-history-log">
+            <!-- Dynamic lyrics history gets populated here -->
+          </div>
+        </div>
+
+      </section>
+    </main>
+
+    <!-- Footer System Status -->
+    <footer class="hud-footer">
+      <div class="footer-left">
+        <span>DELTRON 3030 TRIBUTE AI // SYSTEM ARCHITECTURE: DAN THE AUTOMATOR x DEL THE FUNKY HOMOSAPIEN x KID KOALA</span>
+      </div>
+      <div class="footer-right">
+        <span>BROADCASTING TO: <a href="https://deltron.drewratliff.com" target="_blank" rel="noopener">deltron.drewratliff.com</a></span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Boot Modal (Required for Browser Audio Autoplay) -->
+  <div class="modal-backdrop" id="start-modal">
+    <div class="modal-card">
+      <div class="modal-holo-ring"></div>
+      <div class="modal-logo">🤖⚡🛰️</div>
+      <h2 class="modal-title">DELTRON ZERO // 3030</h2>
+      <div class="modal-badge">24/7 AI SCI-FI RAP MAINFRAME</div>
+      
+      <div class="modal-terminal-text">
+        <p class="term-line">> INITIALIZING APOLLO 9 SUB-SPACE RELAY...</p>
+        <p class="term-line">> CALIBRATING DAN THE AUTOMATOR BOOM-BAP SYNTHESIZER...</p>
+        <p class="term-line">> LOADING DELTRON 3030 MULTISYLLABIC RHYME MATRIX...</p>
+        <p class="term-line">> KID KOALA TURNTABLE PLATTERS ONLINE...</p>
+        <p class="term-line highlight">> TARGET DOMAIN: deltron.drewratliff.com</p>
+      </div>
+
+      <!-- Access Code Entry Row -->
+      <div class="modal-access-box">
+        <label for="modal-access-code" class="modal-access-label">🔑 ACCESS CODE FOR SERVER AI AGENT:</label>
+        <div class="modal-access-input-wrap">
+          <input type="text" id="modal-access-code" value="3030" placeholder="Enter Access Code (3030)" autocomplete="off">
+          <span class="access-badge">UNLOCKED (3030)</span>
+        </div>
+        <p class="modal-access-hint">Default code '3030' unlocks the server's DeltronZero AI Agent live neural core.</p>
+      </div>
+
+      <button id="start-broadcast-btn" class="btn btn-launch" onclick="if(window.startBroadcast) window.startBroadcast();">
+        <span class="icon">🚀</span> CONNECT TO MAINFRAME // START 24/7 RAP BROADCAST
+      </button>
+
+      <div class="modal-hint">
+        Click to initialize real-time Web Audio synthesis & Deltron Zero's vocal flow
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Scripts -->
+  <script src="js/deltron-engine.js?v=3030.7"></script>
+  <script src="js/audio-engine.js?v=3030.7"></script>
+  <script src="js/voice-engine.js?v=3030.7"></script>
+  <script src="js/app.js?v=3030.7"></script>
+</body>
+</html>

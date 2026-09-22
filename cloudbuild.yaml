@@ -1,0 +1,16 @@
+steps:
+  # Deploy container image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'deltron-rap-bot'
+      - '--source=.'
+      - '--project=cannon-chaos-5638'
+      - '--region=us-central1'
+      - '--allow-unauthenticated'
+      - '--quiet'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
