@@ -130,14 +130,13 @@ class DeltronVoiceEngine {
   }
 
   /**
-   * Speaks a single rap line with word-boundary tracking
+   * Speaks a single rap line with word-boundary tracking and resilient timing fallback
    * @param {string} text - The line of lyrics
    * @param {number} bpm - Track BPM (for reference/pacing)
    * @param {Function} onWord - Callback for active word: (wordIndex, wordText)
    * @param {Function} onComplete - Callback when line finishes
    */
   speakLine(text, bpm = 90, onWord = null, onComplete = null) {
-    // Safely stop previous utterance without triggering its completion
     this.stop(false);
 
     const cleanText = text
@@ -158,32 +157,22 @@ class DeltronVoiceEngine {
       return;
     }
 
-    const profile = this.profiles[this.currentProfile];
+    const profile = this.profiles[this.currentProfile] || this.profiles.intercom;
+    const finalRate = Math.max(0.6, Math.min(1.8, profile.rate * (this.userSpeedMultiplier || 1.0)));
 
-    if (!this.synth || this.isMuted) {
-      this.simulateLineDelivery(words, bpm, onWord, onComplete);
-      return;
-    }
-
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    this.activeUtterance = utterance;
-    window._deltronActiveUtterance = utterance; // Pin to window to prevent Chrome GC bug
-
-    if (this.selectedVoice) {
-      utterance.voice = this.selectedVoice;
-    }
-
-    // Independent Vocal Speed Rate
-    const finalRate = profile.rate * (this.userSpeedMultiplier || 1.0);
-    utterance.pitch = profile.pitch;
-    utterance.rate = Math.max(0.5, Math.min(2.0, finalRate));
-
+    // Calculate rhythmic word pace for smooth highlighting on iOS/iPadOS Safari
+    const wordDurationMs = Math.max(160, Math.floor((60000 / Math.max(70, bpm) * 0.45) / finalRate));
     let wordIdx = 0;
     let isFinished = false;
+    let wordTimer = null;
 
     const finish = () => {
       if (isFinished) return;
       isFinished = true;
+      if (wordTimer) {
+        clearInterval(wordTimer);
+        wordTimer = null;
+      }
       if (this._safetyTimer) {
         clearTimeout(this._safetyTimer);
         this._safetyTimer = null;
@@ -193,6 +182,43 @@ class DeltronVoiceEngine {
       window._deltronActiveUtterance = null;
       if (onComplete) onComplete();
     };
+
+    // Highlight initial word immediately
+    if (onWord && words.length > 0) {
+      onWord(0, words[0]);
+      wordIdx = 1;
+    }
+
+    // High-precision rhythmic word step timer (guaranteed on all mobile & desktop browsers)
+    wordTimer = setInterval(() => {
+      if (isFinished || !this.isSpeaking) {
+        clearInterval(wordTimer);
+        return;
+      }
+      if (wordIdx < words.length) {
+        if (onWord) onWord(wordIdx, words[wordIdx]);
+        wordIdx++;
+      } else {
+        clearInterval(wordTimer);
+      }
+    }, wordDurationMs);
+
+    if (!this.synth || this.isMuted) {
+      this.isSpeaking = true;
+      const totalSimDuration = words.length * wordDurationMs + 400;
+      this._safetyTimer = setTimeout(finish, totalSimDuration);
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    this.activeUtterance = utterance;
+    window._deltronActiveUtterance = utterance; // Pin to window against Chrome/Safari GC
+
+    if (this.selectedVoice) {
+      utterance.voice = this.selectedVoice;
+    }
+    utterance.pitch = profile.pitch;
+    utterance.rate = finalRate;
 
     utterance.onboundary = (event) => {
       if (isFinished) return;
@@ -206,10 +232,6 @@ class DeltronVoiceEngine {
 
     utterance.onstart = () => {
       this.isSpeaking = true;
-      if (onWord && words.length > 0 && wordIdx === 0) {
-        onWord(0, words[0]);
-        wordIdx = 1;
-      }
     };
 
     utterance.onend = () => {
@@ -217,22 +239,17 @@ class DeltronVoiceEngine {
     };
 
     utterance.onerror = (e) => {
-      // Ignore cancellations
-      if (e.error === "canceled" || e.error === "interrupted") {
-        return;
-      }
-      console.warn("Speech synthesis notice:", e);
+      console.warn("Speech synthesis notice:", e?.error || e);
       finish();
     };
 
-    // Calculate realistic duration based on word count
-    const minLineDurationMs = Math.max(2500, words.length * 400);
+    // Watchdog timer ensures the line completes even if speech engine is interrupted
+    const maxLineDurationMs = Math.max(2200, Math.floor(words.length * wordDurationMs + 800));
     this._safetyTimer = setTimeout(() => {
-      if (!isFinished && this.isSpeaking) {
-        console.warn("Safety timer ending line.");
+      if (!isFinished) {
         finish();
       }
-    }, minLineDurationMs * 2.5);
+    }, maxLineDurationMs);
 
     try {
       if (this.synth.paused) {
@@ -241,8 +258,8 @@ class DeltronVoiceEngine {
       this.isSpeaking = true;
       this.synth.speak(utterance);
     } catch (err) {
-      console.error("Speech error, falling back to simulator:", err);
-      finish();
+      console.warn("Speech speak call notice:", err);
+      // Fallback timer will auto-complete
     }
   }
 
@@ -276,7 +293,6 @@ class DeltronVoiceEngine {
       this._safetyTimer = null;
     }
     if (this.activeUtterance) {
-      // Detach listeners to prevent cancellation cascade
       this.activeUtterance.onend = null;
       this.activeUtterance.onerror = null;
       this.activeUtterance.onboundary = null;
@@ -284,12 +300,6 @@ class DeltronVoiceEngine {
     }
     window._deltronActiveUtterance = null;
     this.isSpeaking = false;
-
-    if (this.synth) {
-      try {
-        this.synth.cancel();
-      } catch (e) {}
-    }
   }
 }
 

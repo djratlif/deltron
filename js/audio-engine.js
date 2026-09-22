@@ -142,22 +142,13 @@ class DeltronAudioEngine {
     this.masterGain = this.ctx.createGain();
     this.masterGain.gain.setValueAtTime(this.volume, this.ctx.currentTime);
 
-    // Master Limiter / Compressor for that punchy Automator sound
-    this.compressor = this.ctx.createDynamicsCompressor();
-    this.compressor.threshold.setValueAtTime(-14, this.ctx.currentTime);
-    this.compressor.knee.setValueAtTime(10, this.ctx.currentTime);
-    this.compressor.ratio.setValueAtTime(6, this.ctx.currentTime);
-    this.compressor.attack.setValueAtTime(0.005, this.ctx.currentTime);
-    this.compressor.release.setValueAtTime(0.15, this.ctx.currentTime);
-
     // Audio Visualizer Analyser
     this.analyser = this.ctx.createAnalyser();
     this.analyser.fftSize = 256;
     this.analyser.smoothingTimeConstant = 0.85;
 
-    // Routing
-    this.masterGain.connect(this.compressor);
-    this.compressor.connect(this.analyser);
+    // Direct routing for high-fidelity cross-device audio
+    this.masterGain.connect(this.analyser);
     this.analyser.connect(this.ctx.destination);
 
     // Context state change handler (resumes scheduler if audio was interrupted on iOS)
@@ -180,15 +171,18 @@ class DeltronAudioEngine {
       if (!this.ctx) {
         this.init();
       }
-      if (this.ctx && this.ctx.state !== "running") {
-        this.ctx.resume().catch(() => {});
-      }
       if (this.ctx) {
-        const silentBuffer = this.ctx.createBuffer(1, 1, 22050);
-        const source = this.ctx.createBufferSource();
-        source.buffer = silentBuffer;
-        source.connect(this.ctx.destination);
-        source.start(0);
+        if (this.ctx.state !== "running") {
+          this.ctx.resume().catch(() => {});
+        }
+        // Direct oscillator burst to wake up hardware output
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        gain.gain.value = 0.0001;
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(0);
+        osc.stop(this.ctx.currentTime + 0.04);
       }
     } catch (e) {
       // Handled silently
@@ -362,49 +356,54 @@ class DeltronAudioEngine {
   // --- SOUND SYNTHESIS METHODS ---
 
   playKick(time) {
+    if (!this.ctx || !this.masterGain) return;
+    const t = Math.max(this.ctx.currentTime, time);
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
 
     osc.type = "sine";
-    osc.frequency.setValueAtTime(140, time);
-    osc.frequency.exponentialRampToValueAtTime(38, time + 0.12);
+    osc.frequency.setValueAtTime(140, t);
+    osc.frequency.exponentialRampToValueAtTime(38, t + 0.12);
 
-    gain.gain.setValueAtTime(1.1, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.35);
+    gain.gain.setValueAtTime(1.1, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
 
     osc.connect(gain);
     gain.connect(this.masterGain);
 
-    osc.start(time);
-    osc.stop(time + 0.35);
+    osc.start(t);
+    osc.stop(t + 0.35);
 
     // Punch transient click
     const click = this.ctx.createOscillator();
     const clickGain = this.ctx.createGain();
     click.type = "triangle";
-    click.frequency.setValueAtTime(300, time);
-    click.frequency.exponentialRampToValueAtTime(80, time + 0.02);
-    clickGain.gain.setValueAtTime(0.5, time);
-    clickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.02);
+    click.frequency.setValueAtTime(300, t);
+    click.frequency.exponentialRampToValueAtTime(80, t + 0.02);
+    clickGain.gain.setValueAtTime(0.5, t);
+    clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.02);
     click.connect(clickGain);
     clickGain.connect(this.masterGain);
-    click.start(time);
-    click.stop(time + 0.02);
+    click.start(t);
+    click.stop(t + 0.02);
   }
 
   playSnare(time) {
+    if (!this.ctx || !this.masterGain) return;
+    const t = Math.max(this.ctx.currentTime, time);
+
     // Tonal body
     const osc = this.ctx.createOscillator();
     const oscGain = this.ctx.createGain();
     osc.type = "triangle";
-    osc.frequency.setValueAtTime(190, time);
-    osc.frequency.exponentialRampToValueAtTime(80, time + 0.1);
-    oscGain.gain.setValueAtTime(0.7, time);
-    oscGain.gain.exponentialRampToValueAtTime(0.001, time + 0.12);
+    osc.frequency.setValueAtTime(190, t);
+    osc.frequency.exponentialRampToValueAtTime(80, t + 0.1);
+    oscGain.gain.setValueAtTime(0.7, t);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
     osc.connect(oscGain);
     oscGain.connect(this.masterGain);
-    osc.start(time);
-    osc.stop(time + 0.12);
+    osc.start(t);
+    osc.stop(t + 0.12);
 
     // Noise snap burst
     const node = this.ctx.createBufferSource();
@@ -417,21 +416,23 @@ class DeltronAudioEngine {
 
     const filter = this.ctx.createBiquadFilter();
     filter.type = "highpass";
-    filter.frequency.setValueAtTime(1000, time);
+    filter.frequency.setValueAtTime(1000, t);
 
     const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.8, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+    gain.gain.setValueAtTime(0.8, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
 
     node.connect(filter);
     filter.connect(gain);
     gain.connect(this.masterGain);
 
-    node.start(time);
-    node.stop(time + 0.2);
+    node.start(t);
+    node.stop(t + 0.2);
   }
 
   playHiHat(time, isAccent = false) {
+    if (!this.ctx || !this.masterGain) return;
+    const t = Math.max(this.ctx.currentTime, time);
     const node = this.ctx.createBufferSource();
     const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.06, this.ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -442,21 +443,23 @@ class DeltronAudioEngine {
 
     const filter = this.ctx.createBiquadFilter();
     filter.type = "highpass";
-    filter.frequency.setValueAtTime(7500, time);
+    filter.frequency.setValueAtTime(7500, t);
 
     const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(isAccent ? 0.35 : 0.2, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+    gain.gain.setValueAtTime(isAccent ? 0.35 : 0.2, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
 
     node.connect(filter);
     filter.connect(gain);
     gain.connect(this.masterGain);
 
-    node.start(time);
-    node.stop(time + 0.05);
+    node.start(t);
+    node.stop(t + 0.05);
   }
 
   playOpenHat(time) {
+    if (!this.ctx || !this.masterGain) return;
+    const t = Math.max(this.ctx.currentTime, time);
     const node = this.ctx.createBufferSource();
     const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.25, this.ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -467,58 +470,62 @@ class DeltronAudioEngine {
 
     const filter = this.ctx.createBiquadFilter();
     filter.type = "highpass";
-    filter.frequency.setValueAtTime(6000, time);
+    filter.frequency.setValueAtTime(6000, t);
 
     const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.32, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.22);
+    gain.gain.setValueAtTime(0.32, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
 
     node.connect(filter);
     filter.connect(gain);
     gain.connect(this.masterGain);
 
-    node.start(time);
-    node.stop(time + 0.22);
+    node.start(t);
+    node.stop(t + 0.22);
   }
 
   playPerc(time) {
+    if (!this.ctx || !this.masterGain) return;
+    const t = Math.max(this.ctx.currentTime, time);
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = "sine";
-    osc.frequency.setValueAtTime(540, time);
-    osc.frequency.exponentialRampToValueAtTime(120, time + 0.08);
+    osc.frequency.setValueAtTime(540, t);
+    osc.frequency.exponentialRampToValueAtTime(120, t + 0.08);
 
-    gain.gain.setValueAtTime(0.3, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
+    gain.gain.setValueAtTime(0.3, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
 
     osc.connect(gain);
     gain.connect(this.masterGain);
-    osc.start(time);
-    osc.stop(time + 0.08);
+    osc.start(t);
+    osc.stop(t + 0.08);
   }
 
   playBass(time, freq, duration) {
+    if (!this.ctx || !this.masterGain) return;
+    const t = Math.max(this.ctx.currentTime, time);
     const osc = this.ctx.createOscillator();
     const filter = this.ctx.createBiquadFilter();
     const gain = this.ctx.createGain();
 
     osc.type = "sawtooth";
-    osc.frequency.setValueAtTime(freq, time);
+    osc.frequency.setValueAtTime(freq, t);
 
     filter.type = "lowpass";
-    filter.frequency.setValueAtTime(260, time);
-    filter.frequency.exponentialRampToValueAtTime(100, time + duration);
+    filter.frequency.setValueAtTime(260, t);
+    filter.frequency.exponentialRampToValueAtTime(100, t + duration);
 
-    gain.gain.setValueAtTime(0.7, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+    gain.gain.setValueAtTime(0.7, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
 
     // Sub-oscillator for fat low end
     const subOsc = this.ctx.createOscillator();
     subOsc.type = "sine";
-    subOsc.frequency.setValueAtTime(freq / 2, time);
+    subOsc.frequency.setValueAtTime(freq / 2, t);
     const subGain = this.ctx.createGain();
-    subGain.gain.setValueAtTime(0.85, time);
-    subGain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+    subGain.gain.setValueAtTime(0.85, t);
+    subGain.gain.exponentialRampToValueAtTime(0.001, t + duration);
 
     osc.connect(filter);
     filter.connect(gain);
@@ -527,53 +534,57 @@ class DeltronAudioEngine {
     subOsc.connect(subGain);
     subGain.connect(this.masterGain);
 
-    osc.start(time);
-    subOsc.start(time);
-    osc.stop(time + duration);
-    subOsc.stop(time + duration);
+    osc.start(t);
+    subOsc.start(t);
+    osc.stop(t + duration);
+    subOsc.stop(t + duration);
   }
 
   playSciFiChord(time, freqs, duration) {
+    if (!this.ctx || !this.masterGain) return;
+    const t = Math.max(this.ctx.currentTime, time);
     freqs.forEach((f, idx) => {
       const osc = this.ctx.createOscillator();
       const filter = this.ctx.createBiquadFilter();
       const gain = this.ctx.createGain();
 
       osc.type = idx % 2 === 0 ? "sawtooth" : "triangle";
-      osc.frequency.setValueAtTime(f, time);
+      osc.frequency.setValueAtTime(f, t);
       // Detune for lush vintage vibe
-      osc.detune.setValueAtTime((idx - 1.5) * 6, time);
+      osc.detune.setValueAtTime((idx - 1.5) * 6, t);
 
       filter.type = "lowpass";
-      filter.frequency.setValueAtTime(800, time);
-      filter.frequency.exponentialRampToValueAtTime(300, time + duration);
+      filter.frequency.setValueAtTime(800, t);
+      filter.frequency.exponentialRampToValueAtTime(300, t + duration);
 
-      gain.gain.setValueAtTime(0.08, time);
-      gain.gain.linearRampToValueAtTime(0.12, time + 0.2);
-      gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+      gain.gain.setValueAtTime(0.08, t);
+      gain.gain.linearRampToValueAtTime(0.12, t + 0.2);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
 
       osc.connect(filter);
       filter.connect(gain);
       gain.connect(this.masterGain);
 
-      osc.start(time);
-      osc.stop(time + duration);
+      osc.start(t);
+      osc.stop(t + duration);
     });
   }
 
   playSpaceArp(time, freq) {
+    if (!this.ctx || !this.masterGain) return;
+    const t = Math.max(this.ctx.currentTime, time);
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = "sine";
-    osc.frequency.setValueAtTime(freq, time);
+    osc.frequency.setValueAtTime(freq, t);
 
-    gain.gain.setValueAtTime(0.12, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+    gain.gain.setValueAtTime(0.12, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
 
     osc.connect(gain);
     gain.connect(this.masterGain);
-    osc.start(time);
-    osc.stop(time + 0.15);
+    osc.start(t);
+    osc.stop(t + 0.15);
   }
 
   // --- INTERACTIVE SCRATCH & SOUND FX BOARD ---
