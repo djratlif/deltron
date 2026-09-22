@@ -456,9 +456,20 @@
     audEngine.setBeatStyle(styleKey);
     if (bpmSlider) bpmSlider.value = audEngine.bpm;
     if (bpmValDisplay) bpmValDisplay.textContent = `${audEngine.bpm} BPM`;
+
+    // Automatically set default vocal flow speed (1.45x for Chunky Sub-Bass, 1.00x for Galactic Suite)
+    const targetVoiceSpeed = (styleKey === "chunkySub3030") ? 1.45 : 1.00;
+    if (vocEngine) {
+      vocEngine.setSpeedMultiplier(targetVoiceSpeed);
+    }
+    const vsSlider = document.getElementById("voice-speed-slider");
+    const vsVal = document.getElementById("voice-speed-val");
+    if (vsSlider) vsSlider.value = targetVoiceSpeed;
+    if (vsVal) vsVal.textContent = `${targetVoiceSpeed.toFixed(2)}x`;
+
     const styleName = audEngine.beatStyles[styleKey]?.name || styleKey;
     if (logNotice) {
-      deltronLog("info", `[BEAT] Track style: ${styleName} (${audEngine.bpm} BPM)`);
+      deltronLog("info", `[BEAT] Track style: ${styleName} (${audEngine.bpm} BPM, Flow Speed: ${targetVoiceSpeed.toFixed(2)}x)`);
     }
   }
 
