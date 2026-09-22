@@ -84,16 +84,49 @@ class DeltronVoiceEngine {
   }
 
   /**
+   * Unlocks and primes Web Speech API on iOS / iPadOS Safari within direct user gesture
+   */
+  unlockSpeech() {
+    if (!this.synth) return;
+    try {
+      if (this.synth.paused) {
+        this.synth.resume();
+      }
+      // Prime iOS WebKit speech synthesis channel
+      const primeUtterance = new SpeechSynthesisUtterance(" ");
+      primeUtterance.volume = 0.01;
+      primeUtterance.rate = 1.0;
+      primeUtterance.lang = "en-US";
+      this.synth.speak(primeUtterance);
+      console.log("[VoiceEngine] Web Speech pipeline primed and unlocked.");
+    } catch (e) {
+      console.warn("[VoiceEngine] Unlock note:", e);
+    }
+  }
+
+  /**
    * Selects the most fitting browser/system voice for the active profile
    */
   getVoiceForProfile(profileKey) {
-    if (!this.voices || this.voices.length === 0) return null;
+    if (!this.synth) return null;
+    const available = (this.voices && this.voices.length > 0) ? this.voices : (this.synth.getVoices() || []);
+    if (!available || available.length === 0) return null;
+    this.voices = available;
+
     const profile = this.profiles[profileKey] || this.profiles.intercom;
     const targets = profile.preferredVoices || [];
 
-    // 1. Exact or partial match on preferred voice names
+    // 1. Exact or partial match on preferred voice names (prioritize localService voices)
     for (const target of targets) {
-      const found = this.voices.find(v => {
+      const foundLocal = available.find(v => {
+        if (!v || !v.name) return false;
+        const nameMatch = v.name.toLowerCase().includes(target.toLowerCase());
+        const langMatch = v.lang && v.lang.toLowerCase().replace("_", "-").includes(target.toLowerCase());
+        return (nameMatch || langMatch) && (v.localService !== false);
+      });
+      if (foundLocal) return foundLocal;
+
+      const found = available.find(v => {
         if (!v || !v.name) return false;
         const nameMatch = v.name.toLowerCase().includes(target.toLowerCase());
         const langMatch = v.lang && v.lang.toLowerCase().replace("_", "-").includes(target.toLowerCase());
@@ -102,12 +135,16 @@ class DeltronVoiceEngine {
       if (found) return found;
     }
 
-    // 2. Fallback to any English voice
-    const englishVoice = this.voices.find(v => v.lang && v.lang.toLowerCase().startsWith("en"));
+    // 2. Fallback to any local English voice
+    const localEnglish = available.find(v => v.lang && v.lang.toLowerCase().startsWith("en") && v.localService !== false);
+    if (localEnglish) return localEnglish;
+
+    // 3. Fallback to any English voice
+    const englishVoice = available.find(v => v.lang && v.lang.toLowerCase().startsWith("en"));
     if (englishVoice) return englishVoice;
 
-    // 3. Fallback to first available voice
-    return this.voices[0] || null;
+    // 4. Fallback to first available voice
+    return available[0] || null;
   }
 
   applyProfileVoice() {
@@ -214,11 +251,19 @@ class DeltronVoiceEngine {
     this.activeUtterance = utterance;
     window._deltronActiveUtterance = utterance; // Pin to window against Chrome/Safari GC
 
-    if (this.selectedVoice) {
-      utterance.voice = this.selectedVoice;
-    }
+    // Explicit language code is mandatory for iOS Safari WebKit TTS routing
+    utterance.lang = (this.selectedVoice && this.selectedVoice.lang) ? this.selectedVoice.lang : "en-US";
+    utterance.volume = 1.0;
     utterance.pitch = profile.pitch;
     utterance.rate = finalRate;
+
+    if (this.selectedVoice) {
+      try {
+        utterance.voice = this.selectedVoice;
+      } catch (err) {
+        console.warn("Voice assignment notice:", err);
+      }
+    }
 
     utterance.onboundary = (event) => {
       if (isFinished) return;
@@ -240,6 +285,10 @@ class DeltronVoiceEngine {
 
     utterance.onerror = (e) => {
       console.warn("Speech synthesis notice:", e?.error || e);
+      if (e?.error === "voice-unavailable" || e?.error === "synthesis-failed") {
+        // Fallback to default system voice for subsequent lines
+        this.selectedVoice = null;
+      }
       finish();
     };
 

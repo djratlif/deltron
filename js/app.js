@@ -69,13 +69,16 @@
   function initDOM() {
     initEngines();
 
-    // Global iOS / iPadOS Touch Audio Unlock Handler
+    // Global iOS / iPadOS Touch Audio & Speech Unlock Handler
     const unlockAudioMobile = () => {
       if (audEngine) {
         audEngine.unlockAudio();
         if (audEngine.ctx && audEngine.ctx.state !== "running") {
           audEngine.ctx.resume().catch(() => {});
         }
+      }
+      if (vocEngine) {
+        vocEngine.unlockSpeech();
       }
     };
     ["touchstart", "touchend", "pointerdown", "click"].forEach((evt) => {
@@ -385,6 +388,14 @@
         }
       }
 
+      if (vocEngine) {
+        try {
+          vocEngine.unlockSpeech();
+        } catch (e) {
+          console.warn("Speech unlock startup note:", e);
+        }
+      }
+
       if (!liveInterval) {
         liveInterval = setInterval(() => {
           liveTimerSeconds++;
@@ -424,6 +435,9 @@
       if (audEngine) {
         audEngine.unlockAudio();
         audEngine.start();
+      }
+      if (vocEngine) {
+        vocEngine.unlockSpeech();
       }
       if (playPauseBtn) {
         playPauseBtn.innerHTML = `<span class="icon">||</span> PAUSE BROADCAST`;
