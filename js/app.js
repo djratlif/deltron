@@ -457,8 +457,8 @@
     if (bpmSlider) bpmSlider.value = audEngine.bpm;
     if (bpmValDisplay) bpmValDisplay.textContent = `${audEngine.bpm} BPM`;
 
-    // Automatically set default vocal flow speed (1.45x for Chunky Sub-Bass, 1.00x for Galactic Suite)
-    const targetVoiceSpeed = (styleKey === "chunkySub3030") ? 1.45 : 1.00;
+    // Automatically set default vocal flow speed (1.50x for Chunky Sub-Bass, 1.00x for Galactic Suite)
+    const targetVoiceSpeed = (styleKey === "chunkySub3030") ? 1.50 : 1.00;
     if (vocEngine) {
       vocEngine.setSpeedMultiplier(targetVoiceSpeed);
     }
