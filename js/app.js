@@ -18,7 +18,7 @@
   let liveTimerSeconds = 0;
   let liveInterval = null;
   let isGeneratingTrack = false;
-  let beatAlternateMode = true;
+  let beatAlternateMode = false;
   let alternateBeatIndex = 0;
   const alternatingStyles = ["anthem3030", "chunkySub3030"];
 
