@@ -491,25 +491,67 @@
       return;
     }
 
+  function cleanLyricLine(rawLine) {
+    if (!rawLine || typeof rawLine !== "string") return null;
+    let l = rawLine.trim();
+
+    // Strip leading numbering: "1.", "1)", "[01]", "Bar 1:", "Line 1 -"
+    l = l.replace(/^(?:\[?\d{1,2}\]?[:.)\-\s]+|bar\s*\d+[:.)\-\s]+|line\s*\d+[:.)\-\s]+)/i, "").trim();
+
+    // Strip leading/trailing markdown, quotes, brackets
+    l = l.replace(/^["'`\[\](){}#*]+\s*/, "").replace(/\s*["'`\[\](){}#*]+$/, "").trim();
+
+    // Strip trailing punctuation artifacts
+    l = l.replace(/[,;:]+$/, "").trim();
+
+    // Structural section headers or JSON keys
+    const isStructuralHeader = /^(?:verse\s*\d*|intro|chorus|interlude|outro|bridge|hook|title|track|bars?|stanza|audio|sample|cut|scratches?|scratch)\s*[:=-]?\s*$/i.test(l);
+    const isJsonSyntax = /^[{}\[\],":;\s]+$/.test(l) || /^"?\w+"?\s*:\s*(?:\[|"[^"]*"|true|false|\d+)?\s*,?$/i.test(l);
+    const isStageDirection = /^\s*\[?(?:DJ Kid Koala|Automator|Del the Funky|Apollo 9|Radio Chatter|Transmission Sample|Scratch|Beat Drops?|Instrumental)\]?[:\s]*$/i.test(l);
+    const isMetaPrompt = /^(?:1-2 sentence|3-4 line|rich multisyllabic|Apollo 9|Final orbital|Frequency modulation|Deep space telemetry|Intro Bar|Bar \d+|Outro Bar|Interlude Bar|Chorus Bar)/i.test(l);
+    const isPunctuationOnly = /^[\W_]+$/.test(l) && !/[a-zA-Z0-9]/.test(l);
+
+    if (isStructuralHeader || isJsonSyntax || isStageDirection || isMetaPrompt || isPunctuationOnly) {
+      return null;
+    }
+
+    return l.length >= 3 ? l : null;
+  }
+
+  function playSection() {
+    if (!isBroadcasting || !currentTrack) return;
+
+    if (currentSectionIndex >= currentTrack.sections.length) {
+      setTimeout(() => {
+        if (isBroadcasting) loadAndPlayTrack();
+      }, 2000);
+      return;
+    }
+
     const section = currentTrack.sections[currentSectionIndex];
     if (sectionTitleEl) sectionTitleEl.textContent = `[ ${section.type.toUpperCase()} ] ${section.title || ""}`;
 
     let sectionLines = [];
     if (Array.isArray(section.lines) && section.lines.length > 0) {
-      sectionLines = section.lines;
+      sectionLines = section.lines.map(cleanLyricLine).filter(Boolean);
     } else if (typeof section.text === "string") {
-      sectionLines = section.text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+      sectionLines = section.text.split(/\r?\n/).map(cleanLyricLine).filter(Boolean);
     }
 
     // Strict 2-14 Bars Constraint: NEVER deliver a single isolated 1-line bar
     if (sectionLines.length === 1) {
       const single = sectionLines[0];
-      const clauses = single.split(/[;—–]|\.\s+|,\s+(?=[A-Z])/).map(s => s.trim()).filter(s => s.length > 0);
+      const clauses = single.split(/[;—–]|\.\s+|,\s+(?=[A-Z])/).map(cleanLyricLine).filter(Boolean);
       if (clauses.length >= 2) {
         sectionLines = clauses.slice(0, 14);
       } else {
         sectionLines = [single, "Deltron Zero transmitting on the secondary frequency"];
       }
+    } else if (sectionLines.length === 0) {
+      sectionLines = [
+        "Deltron Zero on the microphone terminal",
+        "Dropping multisyllabic syntax to make the flow eternal"
+      ];
     } else if (sectionLines.length > 14) {
       sectionLines = sectionLines.slice(0, 14);
     }

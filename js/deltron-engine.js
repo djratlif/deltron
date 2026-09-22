@@ -381,14 +381,51 @@ class DeltronLyricalEngine {
     throw new Error("Invalid track data returned from server proxy");
   }
 
+  cleanLyricLine(rawLine) {
+    if (!rawLine || typeof rawLine !== "string") return null;
+    let l = rawLine.trim();
+
+    // Strip leading numbering: "1.", "1)", "[01]", "Bar 1:", "Line 1 -"
+    l = l.replace(/^(?:\[?\d{1,2}\]?[:.)\-\s]+|bar\s*\d+[:.)\-\s]+|line\s*\d+[:.)\-\s]+)/i, "").trim();
+
+    // Strip leading/trailing markdown, quotes, brackets
+    l = l.replace(/^["'`\[\](){}#*]+\s*/, "").replace(/\s*["'`\[\](){}#*]+$/, "").trim();
+
+    // Strip trailing punctuation artifacts
+    l = l.replace(/[,;:]+$/, "").trim();
+
+    // Structural section headers or JSON keys
+    const isStructuralHeader = /^(?:verse\s*\d*|intro|chorus|interlude|outro|bridge|hook|title|track|bars?|stanza|audio|sample|cut|scratches?|scratch)\s*[:=-]?\s*$/i.test(l);
+    const isJsonSyntax = /^[{}\[\],":;\s]+$/.test(l) || /^"?\w+"?\s*:\s*(?:\[|"[^"]*"|true|false|\d+)?\s*,?$/i.test(l);
+    const isStageDirection = /^\s*\[?(?:DJ Kid Koala|Automator|Del the Funky|Apollo 9|Radio Chatter|Transmission Sample|Scratch|Beat Drops?|Instrumental)\]?[:\s]*$/i.test(l);
+    const isMetaPrompt = /^(?:1-2 sentence|3-4 line|rich multisyllabic|Apollo 9|Final orbital|Frequency modulation|Deep space telemetry|Intro Bar|Bar \d+|Outro Bar|Interlude Bar|Chorus Bar)/i.test(l);
+    const isPunctuationOnly = /^[\W_]+$/.test(l) && !/[a-zA-Z0-9]/.test(l);
+
+    if (isStructuralHeader || isJsonSyntax || isStageDirection || isMetaPrompt || isPunctuationOnly) {
+      return null;
+    }
+
+    return l.length >= 3 ? l : null;
+  }
+
+  cleanTitle(rawTitle, fallback = "DELTRON ZERO // 3030 NEURAL TRANSMISSION") {
+    if (!rawTitle || typeof rawTitle !== "string") return fallback;
+    let t = rawTitle
+      .replace(/^(?:track\s*title|title|operation|track)\s*[:=-]\s*/i, "")
+      .replace(/^["'`]+|["'`]+$/g, "")
+      .replace(/[[\]{}#*]/g, "")
+      .trim();
+    return t.length >= 3 ? t : fallback;
+  }
+
   normalizeSectionLines(v, minBars = 2, maxBars = 14, defaultCouplet = null) {
     let lines = [];
     if (Array.isArray(v)) {
-      lines = v.map(l => String(l).replace(/[[\]()#*"]/g, '').trim()).filter(l => l.length > 0);
-    } else if (typeof v === 'string') {
-      lines = v.split(/\r?\n/).map(l => String(l).replace(/[[\]()#*"]/g, '').trim()).filter(l => l.length > 0);
+      lines = v.map(l => this.cleanLyricLine(l)).filter(Boolean);
+    } else if (typeof v === "string") {
+      lines = v.split(/\r?\n/).map(l => this.cleanLyricLine(l)).filter(Boolean);
       if (lines.length === 1 && lines[0].length > 40) {
-        const parts = lines[0].split(/[;—–]|\.\s+|,\s+(?=[A-Z])/).map(p => p.trim()).filter(p => p.length > 0);
+        const parts = lines[0].split(/[;—–]|\.\s+|,\s+(?=[A-Z])/).map(l => this.cleanLyricLine(l)).filter(Boolean);
         if (parts.length >= 2) lines = parts;
       }
     }
@@ -621,39 +658,97 @@ Return ONLY valid JSON.`;
   }
 
   /**
-   * Safely extracts JSON even if enclosed in markdown fences or surrounding chat commentary
+   * Safely extracts JSON even if enclosed in markdown fences, with automatic repair and regex extraction
    */
   parseJsonSafely(rawText) {
-    let text = rawText.trim();
+    let text = (rawText || "").trim();
     
-    // Check markdown ```json ... ```
-    const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-    if (match) {
-      text = match[1].trim();
-    } else {
-      // Find outer braces
-      const first = text.indexOf("{");
-      const last = text.lastIndexOf("}");
-      if (first !== -1 && last !== -1 && last > first) {
-        text = text.substring(first, last + 1);
-      }
-    }
+    // 1. Strip markdown fences
+    const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+    if (fenceMatch) text = fenceMatch[1].trim();
+
+    // 2. Locate JSON boundaries
+    const firstBrace = text.indexOf("{");
+    const lastBrace = text.lastIndexOf("}");
+    let jsonCandidate = (firstBrace !== -1 && lastBrace > firstBrace) 
+      ? text.substring(firstBrace, lastBrace + 1) 
+      : text;
+
+    // 3. Clean trailing commas & comments before parsing
+    let sanitizedJson = jsonCandidate
+      .replace(/\/\/[^\n\r]*/g, "")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/,\s*([}\]])/g, "$1");
 
     try {
-      return JSON.parse(text);
+      const parsed = JSON.parse(sanitizedJson);
+      if (parsed && typeof parsed === "object") {
+        return {
+          title: this.cleanTitle(parsed.title),
+          intro: parsed.intro,
+          verse1: parsed.verse1,
+          chorus: parsed.chorus,
+          interlude: parsed.interlude,
+          verse2: parsed.verse2,
+          outro: parsed.outro
+        };
+      }
     } catch (e) {
-      // Fallback object structure if parsing somehow fails
-      console.warn("JSON parse error on LLM output:", e, text);
+      // JSON.parse failed, fallback to regex extraction
+    }
+
+    // 4. Targeted Regex Extraction
+    const extractSectionArray = (key) => {
+      const arrMatch = text.match(new RegExp(`"${key}"\\s*:\\s*\\[([\\s\\S]*?)\\]`, "i"));
+      if (arrMatch) {
+        const items = [];
+        const itemRegex = /"([^"\\]*(?:\\.[^"\\]*)*)"/g;
+        let m;
+        while ((m = itemRegex.exec(arrMatch[1])) !== null) {
+          const cleaned = this.cleanLyricLine(m[1].replace(/\\"/g, '"'));
+          if (cleaned) items.push(cleaned);
+        }
+        if (items.length > 0) return items;
+      }
+
+      const strMatch = text.match(new RegExp(`"${key}"\\s*:\\s*"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"`, "i"));
+      if (strMatch) {
+        const cleaned = this.cleanLyricLine(strMatch[1].replace(/\\"/g, '"'));
+        if (cleaned) return [cleaned];
+      }
+
+      return [];
+    };
+
+    const titleMatch = text.match(/"title"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i) ||
+                       text.match(/(?:title|track)\s*[:=-]\s*"?([^"\n\r]+)"?/i);
+
+    const v1 = extractSectionArray("verse1");
+    const v2 = extractSectionArray("verse2");
+    
+    if (v1.length === 0 && v2.length === 0) {
+      // Split plain lines and filter strictly
+      const rawLines = text.split(/\r?\n/).map(l => this.cleanLyricLine(l)).filter(Boolean);
       return {
-        title: "NEURAL CYPHER 3030",
-        intro: this.getIntro(),
-        verse1: text.split("\n").filter(l => l.trim().length > 0).slice(0, 14),
-        chorus: this.getChorus(),
-        interlude: this.getInterlude(),
-        verse2: text.split("\n").filter(l => l.trim().length > 0).slice(14, 28),
-        outro: this.getOutro()
+        title: this.cleanTitle(titleMatch ? titleMatch[1] : null),
+        intro: rawLines.slice(0, 2),
+        verse1: rawLines.slice(2, 16),
+        chorus: rawLines.slice(16, 20),
+        interlude: rawLines.slice(20, 22),
+        verse2: rawLines.slice(22, 36),
+        outro: rawLines.slice(36, 38)
       };
     }
+
+    return {
+      title: this.cleanTitle(titleMatch ? titleMatch[1] : null),
+      intro: extractSectionArray("intro"),
+      verse1: v1,
+      chorus: extractSectionArray("chorus"),
+      interlude: extractSectionArray("interlude"),
+      verse2: v2,
+      outro: extractSectionArray("outro")
+    };
   }
 
   /**

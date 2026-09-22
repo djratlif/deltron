@@ -140,14 +140,25 @@ class DeltronVoiceEngine {
     // Safely stop previous utterance without triggering its completion
     this.stop(false);
 
-    const words = text.split(/\s+/).filter(w => w.length > 0);
+    const cleanText = text
+      .replace(/^(?:\[?\d{1,2}\]?[:.)\-\s]+|bar\s*\d+[:.)\-\s]+|line\s*\d+[:.)\-\s]+)/i, "")
+      .replace(/^(?:verse\s*\d*|intro|chorus|interlude|outro|bridge|hook|title|track|bars?)\s*[:=-]?\s*$/i, "")
+      .replace(/[[\](){}#*"`]/g, "")
+      .replace(/[,;:]+$/, "")
+      .trim();
+
+    if (!cleanText || cleanText.length < 2 || /^[\W_]+$/.test(cleanText)) {
+      if (onComplete) onComplete();
+      return;
+    }
+
+    const words = cleanText.split(/\s+/).filter(w => w.length > 0);
     if (words.length === 0) {
       if (onComplete) onComplete();
       return;
     }
 
     const profile = this.profiles[this.currentProfile];
-    const cleanText = text.replace(/[[\]()#*]/g, "").trim();
 
     if (!this.synth || this.isMuted) {
       this.simulateLineDelivery(words, bpm, onWord, onComplete);
